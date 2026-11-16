@@ -1,9 +1,9 @@
 // יצירת PDF בצד הלקוח: כל עמוד A4 מצויר על ידי הדפדפן (עברית ו-RTL תקינים) ונארז כתמונה בעמוד PDF.
 import { FONT_CSS } from '../fonts';
-import { loadPdfLibs } from './pdfLibs';
 
 export async function buildPdf(pages: HTMLElement[]): Promise<Blob> {
-  const { jsPDF, toJpeg } = await loadPdfLibs();
+  // הספריות ארוזות בקובץ האתר; נטענות רק בלחיצה על "הורדת דוח PDF"
+  const [{ jsPDF }, { toJpeg }] = await Promise.all([import('jspdf'), import('html-to-image')]);
   if (document.fonts?.ready) await document.fonts.ready;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
   for (let i = 0; i < pages.length; i++) {

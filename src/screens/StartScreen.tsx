@@ -3,6 +3,7 @@ import { ACADEMIC_YEARS, SKILLS, STUDY_YEARS, TOTAL_ITEMS } from '../config/ques
 import { departmentsOf, FACULTIES } from '../config/units';
 import type { CourseDetails } from '../lib/types';
 import { PrivacyNotice } from '../components/PrivacyNotice';
+import { honeypot } from '../lib/honeypot';
 import { normalizeText, validateDetails, type DetailsErrors } from '../lib/validation';
 
 const ORDER: (keyof CourseDetails)[] = ['faculty', 'department', 'academic_year', 'study_year', 'lecturer_name', 'course_name'];
@@ -119,6 +120,13 @@ export function StartScreen({ details, onChange, onNext }: {
           <input id="f-course_name" type="text" autoComplete="off" value={details.course_name} {...aria('course_name')}
             onChange={(e) => set({ course_name: e.target.value })} />
           {err('course_name')}
+        </div>
+
+        {/* שדה נסתר נגד בוטים: מוסתר מהמסך, מקורא המסך ומהניווט במקלדת */}
+        <div className="hp-field" aria-hidden="true">
+          <label htmlFor="f-website">אתר אינטרנט</label>
+          <input id="f-website" name="website" type="text" tabIndex={-1} autoComplete="off"
+            defaultValue="" onChange={(e) => { honeypot.value = e.target.value; }} />
         </div>
 
         <div className="actions span2">

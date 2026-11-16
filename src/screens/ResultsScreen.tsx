@@ -23,7 +23,7 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
   const [msg, setMsg] = useState('');
 
   const report = (r: string, what: string) =>
-    setMsg(r === 'saved' ? `קובץ ה-${what} הוכן להורדה.` : r === 'declined' ? 'ההורדה בוטלה.' : `לא ניתן היה להוריד את קובץ ה-${what}. נסו שוב.`);
+    setMsg(r === 'saved' ? `קובץ ה-${what} הוכן להורדה.` : `לא ניתן היה להוריד את קובץ ה-${what}. נסו שוב.`);
 
   const send = async () => {
     setBusy('send');
@@ -32,6 +32,7 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
     setMsg(
       r === 'ok' ? 'המיפוי נשלח לרשות לחדשנות בהוראה. אם תתקנו תשובות ותשלחו שוב, המיפוי יעודכן.'
         : r === 'sent_unconfirmed' ? 'המיפוי נשלח לרשות לחדשנות בהוראה.'
+        : r === 'too_fast' ? 'המיפוי נשלח לפני רגע. אם תיקנתם תשובות, המתינו כמה שניות ושלחו שוב.'
         : r === 'rejected' ? 'המיפוי לא התקבל. נסו שוב, ואם הבעיה חוזרת הורידו קובץ CSV ושלחו אותו לרשות.'
         : 'לא ניתן היה לשלוח כרגע. בדקו את החיבור לאינטרנט ונסו שוב.',
     );

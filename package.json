@@ -8,8 +8,8 @@
     "build": "tsc && vite build && node scripts/postbuild.mjs dist/index.html",
     "test": "vitest run",
     "preview": "vite preview",
-    "build:artifact": "tsc && vite build --mode artifact --outDir dist-artifact && node scripts/postbuild.mjs dist-artifact/index.html && node scripts/to-artifact.mjs dist-artifact/index.html dist/artifact.html",
-    "build:all": "npm run build && npm run build:artifact"
+    "sync:collector": "node scripts/sync-collector.mjs",
+    "test:e2e": "vitest run -c vitest.e2e.config.ts"
   },
   "author": "",
   "license": "ISC",
@@ -25,6 +25,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.63.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vite-plugin-singlefile": "^2.0.3",

@@ -1,0 +1,219 @@
+// בדיקות דפדפן לממשק המרצה, מול הקובץ הבנוי dist/index.html (כמו באתר).
+// שליחה ל-Google מיורטת ומוחזרת מקולט מדומה — הבדיקות אינן יוצאות לרשת.
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { parseCsv } from '../../src/lib/csvParse.mjs';
+
+const SITE = new URL('../../dist/index.html', import.meta.url).href;
+const COLLECTOR = 'https://script.google.com/**';
+
+let browser: Browser;
+beforeAll(async () => { browser = await chromium.launch(); });
+afterAll(async () => { await browser?.close(); });
+
+interface Ctx { ctx: BrowserContext; page: Page; errors: string[]; external: string[]; posts: Record<string, unknown>[] }
+
+async function open(opts: { width?: number; collectorReply?: object } = {}): Promise<Ctx> {
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: opts.width ?? 1100, height: 900 } });
+  const posts: Record<string, unknown>[] = [];
+  await ctx.route(COLLECTOR, async (route) => {
+    posts.push(JSON.parse(route.request().postData() || '{}'));
+    await route.fulfill({
+      status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify(opts.collectorReply ?? { ok: true, updated: posts.length > 1 }),
+    });
+  });
+  const page = await ctx.newPage();
+  const errors: string[] = [];
+  const external: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('request', (r) => {
+    const u = r.url();
+    if (!/^(file|data|blob):/.test(u) && !u.startsWith('https://script.google.com/')) external.push(u);
+  });
+  await page.goto(SITE);
+  return { ctx, page, errors, external, posts };
+}
+
+async function fillDetails(page: Page) {
+  await page.selectOption('#f-faculty', 'הפקולטה למדעי הבריאות');
+  await page.selectOption('#f-department', 'סיעוד');
+  await page.selectOption('#f-academic_year', 'תשפ״ז');
+  await page.selectOption('#f-study_year', '2');
+  await page.fill('#f-lecturer_name', 'מרצה לבדיקה');
+  await page.fill('#f-course_name', 'קורס, "לבדיקה"');
+  await page.click('button:has-text("המשך לשאלון")');
+  await page.waitForFunction(() => document.querySelector('h1')?.textContent === 'עבודת צוות');
+}
+
+const next = (page: Page) => page.click('.actions button.primary');
+const statements = (page: Page) => page.locator('.questions .q').count();
+const h1 = (page: Page) => page.locator('h1').first().textContent();
+
+/** ממלא את כל המיומנויות; R מסומנת "לא רלוונטית" */
+async function answerAll(page: Page) {
+  const vals: Record<string, number[]> = { T: [3, 4, 3, 3, 1], C: [2, 2, 1, 2, 0], H: [3, 2, 4, 3, 0] };
+  for (const k of ['T', 'C', 'R', 'H']) {
+    await page.waitForSelector(`#na-${k}`);
+    if (k === 'R') await page.check('#na-R');
+    else for (let i = 1; i <= 5; i++) await page.check(`input[name="q-${k}${i}"][value="${vals[k][i - 1]}"]`, { force: true });
+    const before = await h1(page);
+    await next(page);
+    await page.waitForFunction((t) => document.querySelector('h1')?.textContent !== t, before);
+  }
+}
+
+describe('ממשק המרצה – פרטי הקורס', () => {
+  it('כל ששת השדות חובה; שנה אקדמית תשפ״ו–תשפ״ט; שינוי פקולטה מאפס מחלקה', async () => {
+    const { ctx, page, errors } = await open();
+    await page.click('button:has-text("המשך לשאלון")');
+    expect(await page.locator('.field-error').count()).toBe(6);
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('f-faculty');
+    expect(await page.locator('#f-academic_year option').allTextContents()).toEqual(['בחרו שנה אקדמית', 'תשפ״ו', 'תשפ״ז', 'תשפ״ח', 'תשפ״ט']);
+    await page.selectOption('#f-faculty', 'הפקולטה למדעי הבריאות');
+    expect(await page.locator('#f-department option').count()).toBe(8);
+    await page.selectOption('#f-department', 'סיעוד');
+    await page.selectOption('#f-faculty', 'בית הספר לרפואה');
+    expect(await page.inputValue('#f-department')).toBe('');
+    expect(errors).toEqual([]);
+    await ctx.close();
+  });
+
+  it('השדה הנסתר נגד בוטים אינו גלוי ואינו נגיש במקלדת', async () => {
+    const { ctx, page } = await open();
+    const hp = page.locator('#f-website');
+    const box = await page.locator('.hp-field').boundingBox();
+    expect(box!.width).toBeLessThanOrEqual(1);
+    expect(box!.height).toBeLessThanOrEqual(1);
+    expect(await page.locator('.hp-field').evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
+    expect(await hp.getAttribute('tabindex')).toBe('-1');
+    expect(await page.locator('.hp-field').getAttribute('aria-hidden')).toBe('true');
+    await ctx.close();
+  });
+});
+
+describe('ממשק המרצה – שאלון', () => {
+  it('"לא רלוונטי" מסתיר רק את היגדי המיומנות, ביטול מחזיר אותם ואת התשובות', async () => {
+    const { ctx, page, errors } = await open();
+    await fillDetails(page);
+    expect(await h1(page)).toBe('עבודת צוות');
+    await page.check('input[name="q-T1"][value="3"]', { force: true });
+    await page.check('#na-T');
+    expect(await statements(page)).toBe(0);
+    await page.uncheck('#na-T');
+    expect(await statements(page)).toBe(5);
+    expect(await page.isChecked('input[name="q-T1"][value="3"]')).toBe(true);
+    await page.check('#na-T');
+    await next(page);
+    expect(await h1(page)).toBe('חשיבה ביקורתית');
+    expect(await statements(page)).toBe(5);
+    await next(page); // בלי תשובות — אסור להתקדם
+    expect(await h1(page)).toBe('חשיבה ביקורתית');
+    expect(await page.locator('.error-summary').count()).toBe(1);
+    expect(errors).toEqual([]);
+    await ctx.close();
+  });
+
+  it('ניווט בסרגל העליון; התוצאות זמינות רק אחרי השלמה', async () => {
+    const { ctx, page } = await open();
+    await fillDetails(page);
+    expect(await page.locator('.stepper li:nth-child(6) button').getAttribute('aria-disabled')).toBe('true');
+    await page.click('.stepper li:nth-child(5) button');
+    expect(await h1(page)).toBe('חוסן, גמישות והסתגלות');
+    await page.click('.stepper li:nth-child(1) button');
+    expect(await h1(page)).toBe('פרטי הקורס');
+    await ctx.close();
+  });
+});
+
+describe('ממשק המרצה – תוצאות וייצוא', () => {
+  it('סיכום מציג "לא רלוונטי"; CSV עם 41 עמודות; PDF בשני עמודים; ללא שגיאות וללא קריאות רשת', async () => {
+    const { ctx, page, errors, external } = await open();
+    await fillDetails(page);
+    await answerAll(page);
+    expect(await page.locator('.results').count()).toBe(1);
+    const na = page.locator('.results > .card .heatmap td.na-cell');
+    expect(await na.allTextContents()).toEqual(['לא רלוונטי']);
+
+    const [csvDl] = await Promise.all([page.waitForEvent('download'), page.click('button:has-text("הורדת CSV")')]);
+    const csv = readFileSync(fileURLToPath(new URL(`file://${await csvDl.path()}`)), 'utf8');
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    const [head, row] = parseCsv(csv);
+    expect(head).toHaveLength(41);
+    const rec = Object.fromEntries(head.map((h, i) => [h, row[i]]));
+    expect([rec.course_name, rec.academic_year, rec.T_P, rec.R1, rec.R_status]).toEqual(['קורס, "לבדיקה"', 'תשפ״ז', '3.25', '', 'not_applicable']);
+    expect(rec.assessment_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    const [pdfDl] = await Promise.all([page.waitForEvent('download', { timeout: 60_000 }), page.click('button:has-text("הורדת דוח PDF")')]);
+    const pdf = readFileSync((await pdfDl.path())!).toString('latin1');
+    expect(pdf.startsWith('%PDF')).toBe(true);
+    expect(pdf.match(/\/Type\s*\/Page[^s]/g)).toHaveLength(2);
+
+    expect(errors).toEqual([]);
+    expect(external).toEqual([]);
+    await ctx.close();
+  });
+
+  it('טיוטה: הבחירות ותאריך המיפוי נשמרים אחרי רענון', async () => {
+    const { ctx, page } = await open();
+    await page.check('#keep-draft');
+    await fillDetails(page);
+    await answerAll(page);
+    const draft1 = await page.evaluate(() => JSON.parse(localStorage.getItem('skills-mapping:draft:v0.5') || '{}'));
+    expect(draft1.assessment_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(draft1.not_applicable).toEqual(['R']);
+    await page.reload();
+    expect(await page.locator('.results').count()).toBe(1);
+    await page.click('.stepper li:nth-child(4) button');
+    expect(await page.isChecked('#na-R')).toBe(true);
+    const draft2 = await page.evaluate(() => JSON.parse(localStorage.getItem('skills-mapping:draft:v0.5') || '{}'));
+    expect(draft2.assessment_date).toBe(draft1.assessment_date);
+    await ctx.close();
+  });
+});
+
+describe('ממשק המרצה – שליחה לרשות', () => {
+  it('שולח את שורת המיפוי עם שדה נסתר ריק; שליחה חוזרת אפשרית', async () => {
+    const { ctx, page, posts, errors } = await open();
+    await fillDetails(page);
+    await answerAll(page);
+    await page.click('button:has-text("שליחה לרשות")');
+    await page.waitForFunction(() => /נשלח/.test(document.querySelector('.export-msg')?.textContent || ''));
+    expect(posts).toHaveLength(1);
+    const body = posts[0] as { row: Record<string, unknown>; hp: string };
+    expect(body.hp).toBe('');
+    expect(Object.keys(body.row)).toHaveLength(41);
+    expect([body.row.department, body.row.academic_year, body.row.R_status]).toEqual(['סיעוד', 'תשפ״ז', 'not_applicable']);
+    await page.click('button:has-text("שליחה לרשות")');
+    await page.waitForFunction(() => document.querySelectorAll('button[disabled]').length === 0);
+    expect(posts).toHaveLength(2);
+    expect(posts[1].row).toMatchObject({ assessment_id: body.row.assessment_id, assessment_date: body.row.assessment_date });
+    expect(errors).toEqual([]);
+    await ctx.close();
+  });
+
+  it('שליחה מהירה מדי: הודעה מתאימה למרצה', async () => {
+    const { ctx, page } = await open({ collectorReply: { ok: false, error: 'too_fast' } });
+    await fillDetails(page);
+    await answerAll(page);
+    await page.click('button:has-text("שליחה לרשות")');
+    await page.waitForFunction(() => /לפני רגע/.test(document.querySelector('.export-msg')?.textContent || ''));
+    await ctx.close();
+  });
+});
+
+describe('ממשק המרצה – נייד', () => {
+  it('אין גלילה אופקית ברוחב 390 פיקסלים', async () => {
+    const { ctx, page } = await open({ width: 390 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    await fillDetails(page);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    await answerAll(page); // מסך התוצאות כולל את עמודי ה-PDF הנסתרים
+    expect(await page.locator('.results').count()).toBe(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    await ctx.close();
+  });
+});

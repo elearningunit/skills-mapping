@@ -20,6 +20,7 @@ export function App() {
   const [details, setDetails] = useState<CourseDetails>({ ...EMPTY_DETAILS, ...initial?.details });
   const [answers, setAnswers] = useState<Answers>(initial?.answers ?? {});
   const [notApplicable, setNotApplicable] = useState<SkillKey[]>(initial?.not_applicable ?? []);
+  const [assessmentDate, setAssessmentDate] = useState<string>(initial?.assessment_date ?? '');
   const [assessmentId, setAssessmentId] = useState<string>(initial?.assessment_id ?? uuid());
   const [keepDraft, setKeepDraft] = useState<boolean>(initial !== null);
   const [notice, setNotice] = useState<string>(initial ? 'הטיוטה ששמרתם בדפדפן זה נטענה.' : '');
@@ -27,8 +28,8 @@ export function App() {
 
   // שמירת טיוטה רק לבקשת המשתמש
   useEffect(() => {
-    if (keepDraft) saveDraft({ details, answers, step, assessment_id: assessmentId, not_applicable: notApplicable });
-  }, [keepDraft, details, answers, step, assessmentId, notApplicable]);
+    if (keepDraft) saveDraft({ details, answers, step, assessment_id: assessmentId, not_applicable: notApplicable, assessment_date: assessmentDate });
+  }, [keepDraft, details, answers, step, assessmentId, notApplicable, assessmentDate]);
 
   // סימון/ביטול "אינה רלוונטית". התשובות שכבר נבחרו נשמרות, כדי שביטול הסימון יחזיר אותן.
   const setSkillNA = (key: SkillKey, on: boolean) =>
@@ -60,6 +61,7 @@ export function App() {
     setDetails(EMPTY_DETAILS);
     setAnswers({});
     setNotApplicable([]);
+    setAssessmentDate('');
     setAssessmentId(uuid());
     setNotice('התחלתם מיפוי חדש. הנתונים הקודמים נמחקו.');
     go(0);
@@ -87,9 +89,14 @@ export function App() {
     !detailsOk ? needDetails : `יש לענות על כל ${TOTAL_ITEMS} השאלות`,
   ];
 
+  // תאריך המיפוי ננעל בפעם הראשונה שהתוצאות מוצגות (שליחה חוזרת ביום אחר אינה משנה אותו)
+  useEffect(() => {
+    if (step === RESULTS && complete && !assessmentDate) setAssessmentDate(isoDate());
+  }, [step, complete, assessmentDate, RESULTS]);
+
   const mapping: Mapping | null = complete
     ? {
-        assessment_id: assessmentId, assessment_date: isoDate(), details, answers,
+        assessment_id: assessmentId, assessment_date: assessmentDate || isoDate(), details, answers,
         not_applicable: SKILLS.map((s) => s.key).filter((k) => notApplicable.includes(k)),
       }
     : null;

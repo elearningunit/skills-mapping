@@ -227,7 +227,7 @@ thead th { font-weight: 500; color: var(--muted); font-size: .8rem; border-botto
 .switch input { width: 20px; height: 20px; accent-color: var(--accent); }
 
 /* ---------- עמודי PDF: תמיד בהיר, A4 = 794×1123 ---------- */
-.pdf-stage { position: absolute; left: -10000px; top: 0; width: 794px; overflow: hidden; height: 0; }
+.pdf-stage { position: fixed; left: -10000px; top: 0; width: 794px; overflow: hidden; height: 0; pointer-events: none; }
 .pdf-root {
   --bg: #fff; --surface: #fff; --fg: #17232b; --muted: #56646c; --line: #d5dcda; --grid: #e1e6e4; --track: #edf1ef;
   --accent: #0d6b67; --accent-soft: #dcefec; --practice: #0d6b67; --on-practice: #fff; --assess: #9a5b12; --assess-soft: #f6e6cf; --on-assess: #3b2304;
@@ -322,6 +322,9 @@ table.heatmap { border-collapse: separate; border-spacing: 4px; font-size: .85re
 .na-note { background: var(--track); border-radius: 8px; padding: 12px 14px; color: var(--muted); }
 .heatmap td.na-cell { background: var(--track); color: var(--muted); text-align: center; vertical-align: middle; border-radius: 6px; font-weight: 500; outline: none !important; }
 .chart .na-text { font-size: 13px; font-weight: 500; }
+
+/* שדה נסתר נגד בוטים */
+.hp-field { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; opacity: 0; pointer-events: none; }
 
 /* ---------- הודעת פרטיות ---------- */
 .privacy-notice { border: 1px solid var(--line); border-inline-start: 5px solid var(--accent); background: var(--accent-soft); border-radius: var(--r); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }

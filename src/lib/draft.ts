@@ -10,6 +10,8 @@ export interface Draft {
   assessment_id: string;
   /** מיומנויות שסומנו "אינה רלוונטית לקורס שלי" */
   not_applicable?: SkillKey[];
+  /** תאריך המיפוי: נקבע בפעם הראשונה שהוצגו התוצאות ואינו משתנה אחר כך */
+  assessment_date?: string;
 }
 
 const LEGACY_KEYS = ['skills-mapping:draft:v0.4'];

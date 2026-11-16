@@ -3,7 +3,6 @@ import type { Mapping } from '../lib/types';
 import type { Recommendation } from '../lib/recommendations';
 import type { ScoreMap } from '../lib/scoring';
 import { buildInsights } from '../lib/insights';
-import { QUESTIONNAIRE_VERSION } from '../config/questionnaire';
 import { ScoreChart } from './ScoreChart';
 import { DetailsList } from './ReportParts';
 import { ColorLegend, HeatMap } from './Heat';

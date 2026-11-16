@@ -1,13 +1,14 @@
 import { CSV_COLUMNS, mappingToRow } from './csv';
 import type { Mapping } from './types';
+import { honeypot } from './honeypot';
 
 /** המיפוי נשלח באותו מבנה בדיוק כמו שורת ה-CSV (40 עמודות) */
-export function buildPayload(m: Mapping): { row: Record<string, string | number> } {
+export function buildPayload(m: Mapping): { row: Record<string, string | number>; hp: string } {
   const values = mappingToRow(m);
-  return { row: Object.fromEntries(CSV_COLUMNS.map((c, i) => [c, values[i]])) };
+  return { row: Object.fromEntries(CSV_COLUMNS.map((c, i) => [c, values[i]])), hp: honeypot.value };
 }
 
-export type SubmitResult = 'ok' | 'rejected' | 'sent_unconfirmed' | 'failed';
+export type SubmitResult = 'ok' | 'too_fast' | 'rejected' | 'sent_unconfirmed' | 'failed';
 
 /**
  * שליחה לקולט. גוף text/plain כדי למנוע בקשת preflight (Apps Script אינו תומך בה).
@@ -22,8 +23,8 @@ export async function submitMapping(url: string, m: Mapping, fetchImpl: typeof f
   };
   try {
     const res = await fetchImpl(url, init);
-    const data = (await res.json()) as { ok?: boolean };
-    return data.ok ? 'ok' : 'rejected';
+    const data = (await res.json()) as { ok?: boolean; error?: string };
+    return data.ok ? 'ok' : data.error === 'too_fast' || data.error === 'busy' ? 'too_fast' : 'rejected';
   } catch {
     // אם הדפדפן אינו מאפשר לקרוא את התשובה, שולחים בלי לקרוא אותה
     try {

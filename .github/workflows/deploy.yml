@@ -1,4 +1,4 @@
-# פריסה אוטומטית ל-GitHub Pages: בכל דחיפה ל-main מריצים בדיקות, בונים ומפרסמים את dist/index.html
+# פריסה אוטומטית ל-GitHub Pages: בכל דחיפה ל-main מריצים בדיקות יחידה, בונים, מריצים בדיקות דפדפן ומפרסמים את dist/index.html
 name: Deploy to GitHub Pages
 
 on:
@@ -27,6 +27,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # בדיקות דפדפן מול האתר הבנוי (Chromium). אם נכשלות — הגרסה אינה מתפרסמת.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
