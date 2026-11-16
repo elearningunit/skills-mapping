@@ -7,8 +7,9 @@ import type { Answers } from '../src/lib/types';
 import { fill, mapping } from './helpers';
 
 /** מריץ את Code.gs עם גיליון מדומה */
-function loadCollector() {
+function loadCollector(opts: { email?: string; mailFails?: boolean } = {}) {
   const rows: unknown[][] = [];
+  const mails: { to: string; subject: string; body: string }[] = [];
   const sheet = {
     getLastRow: () => rows.length,
     setFrozenRows: () => {},
@@ -18,7 +19,16 @@ function loadCollector() {
     }),
   };
   const ctx: Record<string, unknown> = {
-    SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSheetByName: () => sheet, insertSheet: () => sheet }) },
+    SpreadsheetApp: {
+      getActiveSpreadsheet: () => ({ getSheetByName: () => sheet, insertSheet: () => sheet, getUrl: () => 'https://docs.google.com/spreadsheets/d/X' }),
+    },
+    MailApp: {
+      sendEmail: (m: { to: string; subject: string; body: string }) => {
+        if (opts.mailFails) throw new Error('quota');
+        mails.push(m);
+      },
+    },
+    console: { error: () => {} },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
     ContentService: {
       MimeType: { JSON: 'json' },
@@ -26,10 +36,12 @@ function loadCollector() {
     },
   };
   vm.createContext(ctx);
-  vm.runInContext(readFileSync(new URL('../collector/Code.gs', import.meta.url), 'utf8'), ctx);
+  let code = readFileSync(new URL('../collector/Code.gs', import.meta.url), 'utf8');
+  if (opts.email) code = code.replace("var NOTIFY_EMAIL = '';", `var NOTIFY_EMAIL = '${opts.email}';`);
+  vm.runInContext(code, ctx);
   const post = (body: unknown) =>
     JSON.parse((ctx.doPost as (e: unknown) => { text: string })({ postData: { contents: JSON.stringify(body) } }).text);
-  return { ctx, rows, post };
+  return { ctx, rows, post, mails };
 }
 
 const withoutSkill = (a: Answers, k: string) =>
@@ -85,6 +97,32 @@ describe('קולט המיפויים (Code.gs)', () => {
     const { rows, post } = loadCollector();
     post({ row: { ...buildPayload(mapping(fill(2))).row, course_name: '=IMPORTXML("x")' } });
     expect(rows[1][CSV_COLUMNS.indexOf('course_name') + 1]).toBe(`'=IMPORTXML("x")`);
+  });
+});
+
+describe('הודעות מייל מהקולט', () => {
+  it('בגרסה הציבורית אין כתובת ואין שליחת מייל', () => {
+    const { ctx, mails, post } = loadCollector();
+    expect(ctx.NOTIFY_EMAIL).toBe('');
+    post(buildPayload(mapping(fill(2))));
+    expect(mails).toHaveLength(0);
+  });
+  it('עם כתובת: מייל על מיפוי חדש ועל עדכון, בלי שם המרצה', () => {
+    const { mails, post } = loadCollector({ email: 'team@example.test' });
+    const m = mapping(fill(2));
+    post(buildPayload(m));
+    post(buildPayload(m));
+    expect(mails.map((x) => x.subject)).toEqual(['מיפוי חדש התקבל: מבוא לריפוי בעיסוק', 'מיפוי עודכן: מבוא לריפוי בעיסוק']);
+    expect(mails[0].to).toBe('team@example.test');
+    expect(mails[0].body).toContain('מחלקה: ריפוי בעיסוק');
+    expect(mails[0].body).toContain('שנת לימודים: ב׳');
+    expect(mails[0].body).toContain('https://docs.google.com/spreadsheets/d/X');
+    expect(mails[0].body).not.toContain('ישראלי');
+  });
+  it('כשל בשליחת מייל אינו מונע את שמירת המיפוי', () => {
+    const { rows, post } = loadCollector({ email: 'team@example.test', mailFails: true });
+    expect(post(buildPayload(mapping(fill(2)))).ok).toBe(true);
+    expect(rows).toHaveLength(2);
   });
 });
 

@@ -7,6 +7,10 @@
  */
 
 var SHEET_NAME = 'מיפויים';
+
+// כתובת (או כמה כתובות, מופרדות בפסיק) לקבלת הודעה על כל מיפוי שמתקבל. ריק = ללא הודעות.
+// ההודעה כוללת קורס, מחלקה ושנה וקישור לגיליון, אך לא את שם המרצה.
+var NOTIFY_EMAIL = '';
 var SKILL_KEYS = ['T', 'C', 'R', 'H'];
 
 // העמודות, בסדר זהה ל-CSV של האתר (40 עמודות), ועמודת זמן קבלה בתחילה
@@ -44,12 +48,46 @@ function doPost(e) {
     } else {
       sheet.getRange(sheet.getLastRow() + 1, 1, 1, values.length).setValues([values]);
     }
+    notify_(row, existing > 0);
     return json_({ ok: true, updated: existing > 0 });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message || err) });
   } finally {
     lock.releaseLock();
   }
+}
+
+/** שולח הודעה קצרה על מיפוי שהתקבל. כשל בשליחת המייל אינו מבטל את שמירת המיפוי. */
+function notify_(row, updated) {
+  if (!NOTIFY_EMAIL) return;
+  try {
+    var years = ['', 'א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳'];
+    var course = String(row.course_name).replace(/^'/, '');
+    MailApp.sendEmail({
+      to: NOTIFY_EMAIL,
+      name: 'מיפוי מיומנויות בהוראה',
+      subject: (updated ? 'מיפוי עודכן: ' : 'מיפוי חדש התקבל: ') + course,
+      body: [
+        updated ? 'מיפוי שנשלח בעבר עודכן.' : 'התקבל מיפוי חדש.',
+        '',
+        'קורס: ' + course,
+        'פקולטה: ' + row.faculty,
+        'מחלקה: ' + row.department,
+        'שנת לימודים: ' + (years[row.study_year] || row.study_year),
+        'תאריך מיפוי: ' + row.assessment_date,
+        '',
+        'הפרטים המלאים בגיליון: ' + SpreadsheetApp.getActiveSpreadsheet().getUrl(),
+      ].join('\n'),
+    });
+  } catch (err) {
+    console.error('notify failed: ' + err);
+  }
+}
+
+/** הרצה ידנית: שולח הודעת ניסיון ומאשר את הרשאת שליחת המייל */
+function testNotification() {
+  if (!NOTIFY_EMAIL) throw new Error('NOTIFY_EMAIL is empty');
+  MailApp.sendEmail(NOTIFY_EMAIL, 'בדיקה: הודעות מיפוי מיומנויות', 'ההודעות על מיפויים חדשים יגיעו לכתובת זו.');
 }
 
 function getSheet_() {
