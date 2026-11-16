@@ -47,6 +47,24 @@ async function fillDetails(page: Page) {
   await page.fill('#f-course_name', 'קורס, "לבדיקה"');
   await page.click('button:has-text("המשך לשאלון")');
   await page.waitForFunction(() => document.querySelector('h1')?.textContent === 'עבודת צוות');
+  await settle(page);
+}
+
+/**
+ * בחירה בתיבה/כפתור רדיו ישירות על האלמנט (ולא לפי מיקום על המסך), כדי שגלילה למעלה במעבר מסך
+ * לא תגרום ללחיצה לנחות במקום אחר. מוודא שהבחירה נקלטה.
+ */
+async function tick(page: Page, selector: string, on = true) {
+  const el = page.locator(selector);
+  await el.waitFor({ state: 'attached' });
+  if ((await el.isChecked()) !== on) await el.evaluate((node) => (node as HTMLInputElement).click());
+  await page.waitForFunction(([sel, want]) => (document.querySelector(sel as string) as HTMLInputElement | null)?.checked === want, [selector, on]);
+}
+
+/** אחרי מעבר מסך: ממתין שהגלילה לראש העמוד הסתיימה ושהדפדפן צייר, לפני לחיצה על כפתור */
+async function settle(page: Page) {
+  await page.waitForFunction(() => window.scrollY === 0);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
 
 const next = (page: Page) => page.click('.actions button.primary');
@@ -58,11 +76,12 @@ async function answerAll(page: Page) {
   const vals: Record<string, number[]> = { T: [3, 4, 3, 3, 1], C: [2, 2, 1, 2, 0], H: [3, 2, 4, 3, 0] };
   for (const k of ['T', 'C', 'R', 'H']) {
     await page.waitForSelector(`#na-${k}`);
-    if (k === 'R') await page.check('#na-R');
-    else for (let i = 1; i <= 5; i++) await page.check(`input[name="q-${k}${i}"][value="${vals[k][i - 1]}"]`, { force: true });
+    if (k === 'R') await tick(page, '#na-R');
+    else for (let i = 1; i <= 5; i++) await tick(page, `input[name="q-${k}${i}"][value="${vals[k][i - 1]}"]`);
     const before = await h1(page);
     await next(page);
     await page.waitForFunction((t) => document.querySelector('h1')?.textContent !== t, before);
+    await settle(page);
   }
 }
 
@@ -100,13 +119,13 @@ describe('ממשק המרצה – שאלון', () => {
     const { ctx, page, errors } = await open();
     await fillDetails(page);
     expect(await h1(page)).toBe('עבודת צוות');
-    await page.check('input[name="q-T1"][value="3"]', { force: true });
-    await page.check('#na-T');
+    await tick(page, 'input[name="q-T1"][value="3"]');
+    await tick(page, '#na-T');
     expect(await statements(page)).toBe(0);
-    await page.uncheck('#na-T');
+    await tick(page, '#na-T', false);
     expect(await statements(page)).toBe(5);
     expect(await page.isChecked('input[name="q-T1"][value="3"]')).toBe(true);
-    await page.check('#na-T');
+    await tick(page, '#na-T');
     await next(page);
     expect(await h1(page)).toBe('חשיבה ביקורתית');
     expect(await statements(page)).toBe(5);
@@ -159,7 +178,7 @@ describe('ממשק המרצה – תוצאות וייצוא', () => {
 
   it('טיוטה: הבחירות ותאריך המיפוי נשמרים אחרי רענון', async () => {
     const { ctx, page } = await open();
-    await page.check('#keep-draft');
+    await tick(page, '#keep-draft');
     await fillDetails(page);
     await answerAll(page);
     const draft1 = await page.evaluate(() => JSON.parse(localStorage.getItem('skills-mapping:draft:v0.5') || '{}'));
