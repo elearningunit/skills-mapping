@@ -19,6 +19,7 @@ export function DetailsList({ m }: { m: Mapping }) {
     ['שם הקורס', d.course_name],
     ['פקולטה / בית ספר', d.faculty],
     ['מחלקה / בית ספר', d.department],
+    ['שנה אקדמית', d.academic_year],
     ['שנת לימודים בתואר', yearLabel(d.study_year)],
     ['תאריך מיפוי', formatDate(m.assessment_date)],
     ['גרסת שאלון', QUESTIONNAIRE_VERSION, true],

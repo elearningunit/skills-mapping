@@ -49,8 +49,8 @@ describe('שאלון 0.5', () => {
 });
 
 describe('פרטי הקורס', () => {
-  const ok = { faculty: 'הפקולטה להנדסה', department: 'הנדסה אזרחית', study_year: 1, lecturer_name: 'א', course_name: 'ב' };
-  it('כל חמשת השדות חובה', () => {
+  const ok = { faculty: 'הפקולטה להנדסה', department: 'הנדסה אזרחית', academic_year: 'תשפ״ו', study_year: 1, lecturer_name: 'א', course_name: 'ב' };
+  it('כל ששת השדות חובה', () => {
     expect(validateDetails(ok)).toEqual({});
     for (const k of Object.keys(ok) as (keyof typeof ok)[]) {
       const bad = { ...ok, [k]: k === 'study_year' ? null : '' };
@@ -63,6 +63,11 @@ describe('פרטי הקורס', () => {
   });
   it('מחלקה שאינה שייכת לפקולטה נדחית', () => {
     expect(validateDetails({ ...ok, department: 'פיזיקה' }).department).toBeTruthy();
+  });
+  it('שנה אקדמית: רק תשפ״ו–תשפ״ט', () => {
+    for (const y of ['תשפ״ו', 'תשפ״ז', 'תשפ״ח', 'תשפ״ט']) expect(validateDetails({ ...ok, academic_year: y })).toEqual({});
+    expect(validateDetails({ ...ok, academic_year: 'תשפ״ה' }).academic_year).toBeTruthy();
+    expect(validateDetails({ ...ok, academic_year: '' }).academic_year).toBeTruthy();
   });
   it('שנת לימודים 1–5 בלבד', () => {
     expect(validateDetails({ ...ok, study_year: 6 }).study_year).toBeTruthy();

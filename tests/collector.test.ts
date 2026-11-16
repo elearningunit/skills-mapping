@@ -12,6 +12,7 @@ function loadCollector(opts: { email?: string; mailFails?: boolean } = {}) {
   const mails: { to: string; subject: string; body: string }[] = [];
   const sheet = {
     getLastRow: () => rows.length,
+    getLastColumn: () => (rows[0] ? rows[0].length : 0),
     setFrozenRows: () => {},
     getRange: (r: number, c: number, nr: number, nc: number) => ({
       setValues: (v: unknown[][]) => { v.forEach((row, i) => { rows[r - 1 + i] = row; }); },
@@ -62,6 +63,7 @@ describe('קולט המיפויים (Code.gs)', () => {
     expect(rec.T1).toBe(1);
     expect(rec.T_P).toBe(2.5);
     expect(rec.H_status).toBe('answered');
+    expect(rec.academic_year).toBe('תשפ״ז');
     expect(Object.prototype.toString.call(rec.received_at)).toBe('[object Date]');
   });
 
@@ -86,11 +88,29 @@ describe('קולט המיפויים (Code.gs)', () => {
   it('נתונים לא תקינים נדחים ואינם נשמרים', () => {
     const { rows, post } = loadCollector();
     const good = buildPayload(mapping(fill(2))).row;
-    for (const bad of [{ T1: 7 }, { assessment_id: 'x' }, { study_year: 9 }, { T_status: 'maybe' }, { lecturer_name: '' }]) {
+    for (const bad of [{ T1: 7 }, { assessment_id: 'x' }, { study_year: 9 }, { T_status: 'maybe' }, { lecturer_name: '' }, { academic_year: '=1+1' }]) {
       expect(post({ row: { ...good, ...bad } }).ok).toBe(false);
     }
     expect(post({}).ok).toBe(false);
     expect(rows.length).toBeLessThanOrEqual(1);
+  });
+
+  it('גיליון קיים עם כותרת ישנה (בלי שנה אקדמית): הכותרת מתעדכנת והנתונים נשמרים', () => {
+    const { rows, post } = loadCollector();
+    rows.push(['received_at', ...CSV_COLUMNS.slice(0, -1)]); // כותרת מהגרסה הקודמת
+    rows.push(['old-row']);
+    expect(post(buildPayload(mapping(fill(2)))).ok).toBe(true);
+    expect(rows[0]).toEqual(['received_at', ...CSV_COLUMNS]);
+    expect(rows[1]).toEqual(['old-row']);
+    expect(rows[2][CSV_COLUMNS.indexOf('academic_year') + 1]).toBe('תשפ״ז');
+  });
+
+  it('מיפוי מגרסה קודמת של האתר (בלי שנה אקדמית) עדיין מתקבל', () => {
+    const { rows, post } = loadCollector();
+    const row = { ...buildPayload(mapping(fill(2))).row } as Record<string, unknown>;
+    delete row.academic_year;
+    expect(post({ row }).ok).toBe(true);
+    expect(rows[1][CSV_COLUMNS.indexOf('academic_year') + 1]).toBe('');
   });
 
   it('טקסט שמתחיל בסימן נוסחה נשמר כטקסט', () => {
@@ -115,7 +135,8 @@ describe('הודעות מייל מהקולט', () => {
     expect(mails.map((x) => x.subject)).toEqual(['מיפוי חדש התקבל: מבוא לריפוי בעיסוק', 'מיפוי עודכן: מבוא לריפוי בעיסוק']);
     expect(mails[0].to).toBe('team@example.test');
     expect(mails[0].body).toContain('מחלקה: ריפוי בעיסוק');
-    expect(mails[0].body).toContain('שנת לימודים: ב׳');
+    expect(mails[0].body).toContain('שנת לימודים בתואר: ב׳');
+    expect(mails[0].body).toContain('שנה אקדמית: תשפ״ז');
     expect(mails[0].body).toContain('https://docs.google.com/spreadsheets/d/X');
     expect(mails[0].body).not.toContain('ישראלי');
   });

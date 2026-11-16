@@ -4,6 +4,7 @@ export interface CourseDetails {
   faculty: string;
   department: string;
   study_year: number | null; // 1–5
+  academic_year: string; // שנה אקדמית, למשל תשפ״ז
   lecturer_name: string;
   course_name: string;
 }

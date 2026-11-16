@@ -17,6 +17,8 @@ export const CSV_COLUMNS: string[] = [
   ...codes('H'), 'H_P', 'H_A',
   // סטטוס לכל מיומנות: answered | not_applicable (נוסף בסוף, כדי לא להזיז עמודות קיימות)
   ...SKILLS.map((s) => `${s.key}_status`),
+  // שנה אקדמית — נוספה בסוף, כדי לא להזיז עמודות קיימות
+  'academic_year',
 ];
 
 export const STATUS_ANSWERED = 'answered';
@@ -45,6 +47,7 @@ export function mappingToRow(m: Mapping): (string | number)[] {
     course_name: guardFormula(normalizeText(d.course_name)),
     assessment_date: m.assessment_date,
     questionnaire_version: QUESTIONNAIRE_VERSION,
+    academic_year: d.academic_year,
   };
   for (const s of SKILLS) {
     const score = sc[s.key];

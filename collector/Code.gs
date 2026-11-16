@@ -13,14 +13,15 @@ var SHEET_NAME = 'מיפויים';
 var NOTIFY_EMAIL = '';
 var SKILL_KEYS = ['T', 'C', 'R', 'H'];
 
-// העמודות, בסדר זהה ל-CSV של האתר (40 עמודות), ועמודת זמן קבלה בתחילה
+// העמודות, בסדר זהה ל-CSV של האתר (41 עמודות), ועמודת זמן קבלה בתחילה
 var CSV_COLUMNS = [
   'assessment_id', 'faculty', 'department', 'study_year', 'lecturer_name', 'course_name',
   'assessment_date', 'questionnaire_version',
   'T1', 'T2', 'T3', 'T4', 'T5', 'C1', 'C2', 'C3', 'C4', 'C5', 'R1', 'R2', 'R3', 'R4', 'R5',
   'T_P', 'T_A', 'C_P', 'C_A', 'R_P', 'R_A',
   'H1', 'H2', 'H3', 'H4', 'H5', 'H_P', 'H_A',
-  'T_status', 'C_status', 'R_status', 'H_status'
+  'T_status', 'C_status', 'R_status', 'H_status',
+  'academic_year'
 ];
 var HEADER = ['received_at'].concat(CSV_COLUMNS);
 
@@ -73,7 +74,8 @@ function notify_(row, updated) {
         'קורס: ' + course,
         'פקולטה: ' + row.faculty,
         'מחלקה: ' + row.department,
-        'שנת לימודים: ' + (years[row.study_year] || row.study_year),
+        'שנה אקדמית: ' + (row.academic_year || '—'),
+        'שנת לימודים בתואר: ' + (years[row.study_year] || row.study_year),
         'תאריך מיפוי: ' + row.assessment_date,
         '',
         'הפרטים המלאים בגיליון: ' + SpreadsheetApp.getActiveSpreadsheet().getUrl(),
@@ -96,6 +98,9 @@ function getSheet_() {
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
     sheet.setFrozenRows(1);
+  } else if (sheet.getLastColumn() < HEADER.length) {
+    // עמודות חדשות נוספות תמיד בסוף; מעדכנים את שורת הכותרת בלי לגעת בנתונים
+    sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
   }
   return sheet;
 }
@@ -131,6 +136,10 @@ function validate_(r) {
   out.assessment_date = String(r.assessment_date);
   if (!/^\d+\.\d+$/.test(String(r.questionnaire_version))) fail('questionnaire_version');
   out.questionnaire_version = String(r.questionnaire_version);
+  // שנה אקדמית: אופציונלי לתאימות עם גרסאות קודמות של האתר
+  var ay = r.academic_year === undefined || r.academic_year === null ? '' : String(r.academic_year);
+  if (ay && !/^ת[\u05d0-\u05ea]{2,3}[״"][\u05d0-\u05ea]$/.test(ay)) fail('academic_year');
+  out.academic_year = ay;
 
   SKILL_KEYS.forEach(function (k) {
     var status = r[k + '_status'];

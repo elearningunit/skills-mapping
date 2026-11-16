@@ -1,11 +1,11 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { SKILLS, STUDY_YEARS, TOTAL_ITEMS } from '../config/questionnaire';
+import { ACADEMIC_YEARS, SKILLS, STUDY_YEARS, TOTAL_ITEMS } from '../config/questionnaire';
 import { departmentsOf, FACULTIES } from '../config/units';
 import type { CourseDetails } from '../lib/types';
 import { PrivacyNotice } from '../components/PrivacyNotice';
 import { normalizeText, validateDetails, type DetailsErrors } from '../lib/validation';
 
-const ORDER: (keyof CourseDetails)[] = ['faculty', 'department', 'study_year', 'lecturer_name', 'course_name'];
+const ORDER: (keyof CourseDetails)[] = ['faculty', 'department', 'academic_year', 'study_year', 'lecturer_name', 'course_name'];
 
 export function StartScreen({ details, onChange, onNext }: {
   details: CourseDetails; onChange: (d: CourseDetails) => void; onNext: () => void;
@@ -58,7 +58,7 @@ export function StartScreen({ details, onChange, onNext }: {
 
       {tried && errCount > 0 && (
         <div className="error-summary" role="alert">
-          חסרים {errCount} מתוך 5 פרטים. כל השדות חובה.
+          חסרים {errCount} מתוך {ORDER.length} פרטים. כל השדות חובה.
         </div>
       )}
 
@@ -87,13 +87,23 @@ export function StartScreen({ details, onChange, onNext }: {
         </div>
 
         <div className="field">
+          <label htmlFor="f-academic_year">שנת לימודים אקדמית</label>
+          <select id="f-academic_year" value={details.academic_year} {...aria('academic_year')}
+            onChange={(e) => set({ academic_year: e.target.value })}>
+            <option value="">בחרו שנה אקדמית</option>
+            {ACADEMIC_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          {err('academic_year')}
+        </div>
+
+        <div className="field">
           <label htmlFor="f-study_year">שנת לימודים בתואר</label>
           <select id="f-study_year" value={details.study_year ?? ''} {...aria('study_year')}
             onChange={(e) => set({ study_year: e.target.value ? Number(e.target.value) : null })}>
             <option value="">בחרו שנה</option>
             {STUDY_YEARS.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
           </select>
-          <p className="hint">השנה בתואר שבה נלמד הקורס, לא השנה האקדמית.</p>
+          <p className="hint">השנה בתואר שבה נלמד הקורס (א׳–ה׳).</p>
           {err('study_year')}
         </div>
 
@@ -104,7 +114,7 @@ export function StartScreen({ details, onChange, onNext }: {
           {err('lecturer_name')}
         </div>
 
-        <div className="field span2">
+        <div className="field">
           <label htmlFor="f-course_name">שם הקורס</label>
           <input id="f-course_name" type="text" autoComplete="off" value={details.course_name} {...aria('course_name')}
             onChange={(e) => set({ course_name: e.target.value })} />

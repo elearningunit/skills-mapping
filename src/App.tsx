@@ -10,12 +10,14 @@ import { ResultsScreen } from './screens/ResultsScreen';
 import { Stepper, type StepState } from './components/Stepper';
 import { ConfirmButton } from './components/ConfirmButton';
 
-const EMPTY_DETAILS: CourseDetails = { faculty: '', department: '', study_year: null, lecturer_name: '', course_name: '' };
+const EMPTY_DETAILS: CourseDetails = {
+  faculty: '', department: '', academic_year: '', study_year: null, lecturer_name: '', course_name: '',
+};
 
 export function App() {
   const initial = useRef(loadDraft()).current;
   const [step, setStep] = useState<number>(initial?.step ?? 0);
-  const [details, setDetails] = useState<CourseDetails>(initial?.details ?? EMPTY_DETAILS);
+  const [details, setDetails] = useState<CourseDetails>({ ...EMPTY_DETAILS, ...initial?.details });
   const [answers, setAnswers] = useState<Answers>(initial?.answers ?? {});
   const [notApplicable, setNotApplicable] = useState<SkillKey[]>(initial?.not_applicable ?? []);
   const [assessmentId, setAssessmentId] = useState<string>(initial?.assessment_id ?? uuid());

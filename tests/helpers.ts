@@ -10,7 +10,7 @@ export function mapping(answers: CompleteAnswers, details: Partial<Mapping['deta
     assessment_id: '3f2b8c1e-1234-4abc-9def-0123456789ab',
     assessment_date: '2026-11-12',
     details: {
-      faculty: 'הפקולטה למדעי הבריאות', department: 'ריפוי בעיסוק', study_year: 2,
+      faculty: 'הפקולטה למדעי הבריאות', department: 'ריפוי בעיסוק', study_year: 2, academic_year: 'תשפ״ז',
       lecturer_name: 'ד"ר ישראלה ישראלי', course_name: 'מבוא לריפוי בעיסוק', ...details,
     },
     answers,

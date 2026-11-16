@@ -1,4 +1,4 @@
-import { ITEM_CODES, SKILLS, type SkillKey } from '../config/questionnaire';
+import { ACADEMIC_YEARS, ITEM_CODES, SKILLS, type SkillKey } from '../config/questionnaire';
 import { departmentsOf, FACULTIES } from '../config/units';
 import type { Answers, CompleteAnswers, CourseDetails } from './types';
 
@@ -13,6 +13,7 @@ export function validateDetails(d: CourseDetails): DetailsErrors {
   const e: DetailsErrors = {};
   if (!FACULTIES.includes(d.faculty)) e.faculty = 'יש לבחור פקולטה או בית ספר.';
   if (!d.department || !departmentsOf(d.faculty).includes(d.department)) e.department = 'יש לבחור מחלקה מתוך הרשימה.';
+  if (!(ACADEMIC_YEARS as readonly string[]).includes(d.academic_year)) e.academic_year = 'יש לבחור שנת לימודים אקדמית.';
   if (!d.study_year || d.study_year < 1 || d.study_year > 5) e.study_year = 'יש לבחור שנת לימודים בתואר.';
   if (!normalizeText(d.lecturer_name)) e.lecturer_name = 'יש להזין את שם המרצה.';
   if (!normalizeText(d.course_name)) e.course_name = 'יש להזין את שם הקורס.';

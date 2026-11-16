@@ -106,6 +106,9 @@ export const ANCHORS: Record<Rating, { practice: string; assessment: string }> =
   4: { practice: 'מהווה יעד מרכזי ומתורגלת באופן שיטתי לאורך הקורס.', assessment: 'הערכה שיטתית ומתמשכת לפי קריטריונים מוגדרים, עם משוב לשיפור.' },
 };
 
+/** שנת לימודים אקדמית (נשמרת כטקסט, כפי שמוצגת) */
+export const ACADEMIC_YEARS = ['תשפ״ו', 'תשפ״ז', 'תשפ״ח', 'תשפ״ט'] as const;
+
 export const STUDY_YEARS: { value: 1 | 2 | 3 | 4 | 5; label: string }[] = [
   { value: 1, label: 'שנה א׳' },
   { value: 2, label: 'שנה ב׳' },
