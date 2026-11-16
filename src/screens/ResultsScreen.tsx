@@ -5,13 +5,15 @@ import { recommend } from '../lib/recommendations';
 import { buildInsights } from '../lib/insights';
 import { buildCsv, csvFilename } from '../lib/csv';
 import { downloadFile } from '../lib/download';
+import { submitMapping } from '../lib/submit';
+import { SUBMIT_URL } from '../config/collection';
 import { ScoreChart } from '../components/ScoreChart';
 import { DetailsList } from '../components/ReportParts';
 import { PdfReport } from '../components/PdfReport';
 import { ColorLegend, HeatMap } from '../components/Heat';
 import { SKILLS } from '../config/questionnaire';
 
-type Busy = '' | 'pdf' | 'csv';
+type Busy = '' | 'pdf' | 'csv' | 'send';
 
 export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (step: number) => void }) {
   const scores = useMemo(() => scoreApplicable(mapping.answers, mapping.not_applicable), [mapping.answers, mapping.not_applicable]);
@@ -22,6 +24,19 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
 
   const report = (r: string, what: string) =>
     setMsg(r === 'saved' ? `קובץ ה-${what} הוכן להורדה.` : r === 'declined' ? 'ההורדה בוטלה.' : `לא ניתן היה להוריד את קובץ ה-${what}. נסו שוב.`);
+
+  const send = async () => {
+    setBusy('send');
+    setMsg('שולחים את המיפוי…');
+    const r = await submitMapping(SUBMIT_URL, mapping);
+    setMsg(
+      r === 'ok' ? 'המיפוי נשלח לרשות לחדשנות בהוראה. אם תתקנו תשובות ותשלחו שוב, המיפוי יעודכן.'
+        : r === 'sent_unconfirmed' ? 'המיפוי נשלח לרשות לחדשנות בהוראה.'
+        : r === 'rejected' ? 'המיפוי לא התקבל. נסו שוב, ואם הבעיה חוזרת הורידו קובץ CSV ושלחו אותו לרשות.'
+        : 'לא ניתן היה לשלוח כרגע. בדקו את החיבור לאינטרנט ונסו שוב.',
+    );
+    setBusy('');
+  };
 
   const exportCsv = async () => {
     setBusy('csv');
@@ -54,11 +69,20 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
 
       <div className="card export">
         <div>
-          <h2>שמירת התוצאות</h2>
-          <p className="muted">הקבצים נוצרים בדפדפן שלכם, ללא חשבון וללא שליחה לשרת.</p>
+          <h2>{SUBMIT_URL ? 'שליחה ושמירה' : 'שמירת התוצאות'}</h2>
+          <p className="muted">
+            {SUBMIT_URL
+              ? 'כדי שהמיפוי יגיע לרשות לחדשנות בהוראה, לחצו "שליחה לרשות". אפשר גם להוריד עותק לעצמכם.'
+              : 'הקבצים נוצרים בדפדפן שלכם, ללא חשבון וללא שליחה לשרת.'}
+          </p>
         </div>
         <div className="export-btns">
-          <button className="btn primary" onClick={exportPdf} disabled={busy !== ''}>
+          {SUBMIT_URL && (
+            <button className="btn primary" onClick={send} disabled={busy !== ''}>
+              {busy === 'send' ? 'שולח…' : 'שליחה לרשות'}
+            </button>
+          )}
+          <button className={SUBMIT_URL ? 'btn' : 'btn primary'} onClick={exportPdf} disabled={busy !== ''}>
             {busy === 'pdf' ? 'מכין PDF…' : 'הורדת דוח PDF'}
           </button>
           <button className="btn" onClick={exportCsv} disabled={busy !== ''}>הורדת CSV</button>
