@@ -29,7 +29,13 @@ describe('רשימת קורסים ומרצים', () => {
     expect(findCourse('סיעוד', 'ד"ר נועה לוי (דוגמה)', 'קורס אחר')).toBeUndefined();
   });
 
-  it('ללא קובץ קורסים: הרשימה ריקה והמרצה מקליד ידנית', () => {
-    expect(readFileSync(new URL('../src/config/courses.json', import.meta.url), 'utf8').trim()).toBe('{}');
+  it('הרשימה באתר: כל המחלקות קיימות ברשימה הרשמית, ואין בה מספרי עובד', () => {
+    const units = JSON.parse(readFileSync(new URL('../src/config/faculties_departments.json', import.meta.url), 'utf8')) as { department: string }[];
+    const known = new Set(units.map((u) => u.department));
+    const text = readFileSync(new URL('../src/config/courses.json', import.meta.url), 'utf8');
+    const c = JSON.parse(text) as Catalog;
+    expect(Object.keys(c).filter((d) => !known.has(d))).toEqual([]);
+    const csv = readFileSync(new URL('../data/courses.csv', import.meta.url), 'utf8');
+    expect(csv.split('\n')[0].trim()).toBe('מחלקה,מספר קורס,שם קורס,שם מרצה,שם משפחה');
   });
 });

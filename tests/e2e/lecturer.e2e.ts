@@ -43,7 +43,10 @@ async function fillDetails(page: Page) {
   await page.selectOption('#f-department', 'סיעוד');
   await page.selectOption('#f-academic_year', 'תשפ״ז');
   await page.selectOption('#f-study_year', '2');
+  // למחלקה יש רשימת קורסים: "אחר" והקלדה ידנית (שם בדוי)
+  await page.selectOption('#f-lecturer_name', '__other__');
   await page.fill('#f-lecturer_name', 'מרצה לבדיקה');
+  await page.selectOption('#f-course_name', '__other__');
   await page.fill('#f-course_name', 'קורס, "לבדיקה"');
   await page.click('button:has-text("המשך לשאלון")');
   await page.waitForFunction(() => document.querySelector('h1')?.textContent === 'עבודת צוות');
