@@ -40,7 +40,7 @@ DEPT = {
     'מדעי הנתונים ובינה מלאכותית': 'מדעי הנתונים ובינה מלאכותית',
     'פיזיקה': 'פיזיקה', 'פיזיקה תואר שני': 'פיזיקה',
     'מדעי הסיעוד': 'סיעוד',
-    'מדעי הרפואה': 'קדם רפואה',
+    'מדעי הרפואה': 'ביה"ס לרפואה',
     'רפואה 4 שנתי': 'ביה"ס לרפואה', 'רפואה 6 שנתי': 'ביה"ס לרפואה',
     'תעודת הוראה': 'הכשרת מורים',
     'קורס כלל פקולטי מדעי החברה והרוח': 'מדעי החברה כללי',
@@ -53,6 +53,8 @@ DEPT = {
 SKIP_TYPES = re.compile(r'^(תרגיל(?!\+מעבדה)|תזה|בחינת גמר|לרישום)')
 ACADEMIC = {'ד"ר': 'ד"ר', "פרופ'": "פרופ'", "פרופ' אמריטוס": "פרופ'"}
 
+# קורסי תואר שני אינם נכללים במיפוי (החלטת הרשות)
+GRADUATE = re.compile(r'תואר שני')
 clean = lambda s: re.sub(r'\s+', ' ', str(s or '')).strip().strip('[]').strip()
 ws = openpyxl.load_workbook(SRC, read_only=True)['Default']
 it = ws.iter_rows(values_only=True)
@@ -66,6 +68,7 @@ for r in it:
     if not r or not any(r): continue
     stats['rows'] += 1
     src = clean(r[ix['מחלקה']])
+    if GRADUATE.search(src): stats['graduate'] += 1; continue
     dept = DEPT.get(src)
     if not dept: unmapped[src or '(ריק)'] += 1; continue
     t = clean(r[ix['סוג שיעור']])
@@ -82,6 +85,6 @@ for r in it:
 with open(OUT, 'w', encoding='utf-8', newline='') as f:
     w = csv.DictWriter(f, fieldnames=['מחלקה', 'מספר קורס', 'שם קורס', 'שם מרצה', 'שם משפחה'])
     w.writeheader(); w.writerows(out)
-print(f"rows read: {stats['rows']}, written: {len(out)}")
+print(f"rows read: {stats['rows']}, graduate skipped: {stats['graduate']}, written: {len(out)}")
 print('skipped lesson types:', dict(types))
 print('departments not mapped (skipped):', dict(unmapped))
