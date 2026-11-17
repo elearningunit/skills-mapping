@@ -110,7 +110,7 @@ describe('ממשק הרשות – רשימת המיפויים', () => {
     await page.selectOption('#flt-department', 'סיעוד');
     await page.selectOption('#flt-faculty', 'הפקולטה להנדסה');
     expect(await page.inputValue('#flt-department')).toBe('');
-    expect(await page.locator('#flt-department option').count()).toBe(7); // "הכול" + 6 מחלקות
+    expect(await page.locator('#flt-department option').count()).toBe(8); // "הכול" + 7 מחלקות
     await ctx.close();
   });
 });

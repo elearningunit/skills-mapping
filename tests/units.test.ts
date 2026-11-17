@@ -8,16 +8,16 @@ describe('רשימת הפקולטות והמחלקות', () => {
   const rows = parseCsv(raw).filter((r) => r.some((c) => c.trim()));
   const body = rows.slice(1);
 
-  it('קובץ המקור: UTF-8 עם BOM, 38 שורות, ללא תאים ריקים', () => {
+  it('קובץ המקור: UTF-8 עם BOM, 41 שורות, ללא תאים ריקים', () => {
     expect(raw.charCodeAt(0)).toBe(0xfeff);
     expect(rows[0]).toEqual(['פקולטה', 'מחלקה / בית ספר']);
-    expect(body).toHaveLength(38);
+    expect(body).toHaveLength(41);
     body.forEach((r) => { expect(r).toHaveLength(2); r.forEach((c) => expect(c.trim()).not.toBe('')); });
   });
 
-  it('ה-JSON בבנייה זהה לקובץ המקור (38 זוגות, 9 פקולטות)', () => {
+  it('ה-JSON בבנייה זהה לקובץ המקור (41 זוגות, 9 פקולטות)', () => {
     expect(UNIT_PAIRS.map((p) => [p.faculty, p.department])).toEqual(body);
-    expect(new Set(UNIT_PAIRS.map((p) => p.faculty + '|' + p.department)).size).toBe(38);
+    expect(new Set(UNIT_PAIRS.map((p) => p.faculty + '|' + p.department)).size).toBe(41);
     expect(FACULTIES).toHaveLength(9);
   });
 
@@ -28,7 +28,7 @@ describe('רשימת הפקולטות והמחלקות', () => {
 
   it('כל מחלקה שייכת לפקולטה אחת בלבד ברשימה התלויה', () => {
     const total = FACULTIES.reduce((n, f) => n + departmentsOf(f).length, 0);
-    expect(total).toBe(38);
-    expect(departmentsOf('הפקולטה להנדסה')).toHaveLength(6);
+    expect(total).toBe(41);
+    expect(departmentsOf('הפקולטה להנדסה')).toHaveLength(7);
   });
 });
