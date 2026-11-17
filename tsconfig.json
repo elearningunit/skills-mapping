@@ -18,7 +18,12 @@
     "types": [
       "node"
     ],
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "paths": {
+      "@courses": [
+        "./src/config/courses.json"
+      ]
+    }
   },
   "include": [
     "src",

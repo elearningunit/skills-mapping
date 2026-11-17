@@ -339,3 +339,4 @@ table.heatmap { border-collapse: separate; border-spacing: 4px; font-size: .85re
 .insights.rich li { border-inline-start: 3px solid var(--line); padding-inline-start: 10px; }
 .insights.rich b { display: block; font-weight: 500; }
 .pdf-page .insights.rich { gap: 8px; }
+.other-input { margin-top: 6px; }

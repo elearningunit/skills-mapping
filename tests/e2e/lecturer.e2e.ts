@@ -236,3 +236,61 @@ describe('ממשק המרצה – נייד', () => {
     await ctx.close();
   });
 });
+
+describe('ממשק המרצה – בחירה מרשימת הקורסים', () => {
+  const LISTED = new URL('../../dist-e2e-courses/index.html', import.meta.url).href;
+  async function openListed() {
+    const c = await open();
+    await c.page.goto(LISTED);
+    await c.page.selectOption('#f-faculty', 'הפקולטה למדעי הבריאות');
+    await c.page.selectOption('#f-department', 'סיעוד');
+    return c;
+  }
+
+  it('בוחרים מרצה ואז רק את הקורסים שלו; השנה בתואר מתמלאת מהרשימה', async () => {
+    const { ctx, page, errors } = await openListed();
+    expect(await page.locator('#f-course_name').isDisabled()).toBe(true);
+    await page.selectOption('#f-lecturer_name', 'ד"ר נועה לוי (דוגמה)');
+    const opts = await page.locator('#f-course_name option').allTextContents();
+    expect(opts).toEqual(['בחרו קורס', 'יסודות הסיעוד (דוגמה) (1001)', 'פרמקולוגיה (דוגמה) (1002)', 'אחר – הקורס לא ברשימה']);
+    await page.selectOption('#f-course_name', 'פרמקולוגיה (דוגמה) (1002)');
+    expect(await page.inputValue('#f-study_year')).toBe('2');
+    await page.selectOption('#f-academic_year', 'תשפ״ז');
+    await page.click('button:has-text("המשך לשאלון")');
+    await page.waitForSelector('.skill-def');
+    expect(errors).toEqual([]);
+    await ctx.close();
+  });
+
+  it('"אחר": הקלדה ידנית של שם מרצה ושל קורס; שגיאה אם השדה נשאר ריק', async () => {
+    const { ctx, page } = await openListed();
+    await page.selectOption('#f-lecturer_name', '__other__');
+    await page.fill('#f-lecturer_name', 'מרצה חדשה');
+    // מרצה שאינו ברשימה רואה את כל קורסי המחלקה
+    expect(await page.locator('#f-course_name option').count()).toBe(5);
+    await page.selectOption('#f-course_name', '__other__');
+    await page.selectOption('#f-academic_year', 'תשפ״ז');
+    await page.selectOption('#f-study_year', '1');
+    await page.click('button:has-text("המשך לשאלון")');
+    expect(await page.locator('#e-course_name').textContent()).toContain('שם הקורס');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('f-course_name');
+    await page.fill('#f-course_name', 'קורס בחירה חדש');
+    await page.click('button:has-text("המשך לשאלון")');
+    await page.waitForSelector('.skill-def');
+    // חזרה לפרטים: הערכים הידניים נשמרו ו"אחר" נשאר מסומן
+    await page.click('.stepper button >> nth=0');
+    expect(await page.inputValue('#f-lecturer_name')).toBe('מרצה חדשה');
+    expect(await page.inputValue('#f-lecturer_pick')).toBe('__other__');
+    expect(await page.inputValue('#f-course_name')).toBe('קורס בחירה חדש');
+    await ctx.close();
+  });
+
+  it('מחלקה שאין לה רשימה: שדות טקסט חופשי כמו קודם', async () => {
+    const { ctx, page } = await openListed();
+    await page.selectOption('#f-department', 'פיזיותרפיה');
+    expect(await page.locator('input#f-lecturer_name').count()).toBe(1);
+    expect(await page.locator('input#f-course_name').count()).toBe(1);
+    await ctx.close();
+  });
+});
+

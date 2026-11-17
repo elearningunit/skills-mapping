@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { ACADEMIC_YEARS, SKILLS, STUDY_YEARS, TOTAL_ITEMS } from '../config/questionnaire';
 import { departmentsOf, FACULTIES } from '../config/units';
+import { courseLabel, coursesOf, findCourse, hasCatalog, isListedLecturer, lecturersOf } from '../lib/courses';
 import type { CourseDetails } from '../lib/types';
 import { PrivacyNotice } from '../components/PrivacyNotice';
 import { honeypot } from '../lib/honeypot';
@@ -14,6 +15,15 @@ export function StartScreen({ details, onChange, onNext }: {
   const [errors, setErrors] = useState<DetailsErrors>({});
   const [tried, setTried] = useState(false);
   const deps = details.faculty ? departmentsOf(details.faculty) : [];
+  // רשימת קורסים ומרצים למחלקה (אם קיימת). "אחר" = הקלדה ידנית.
+  const listed = hasCatalog(details.department);
+  const [lecOtherPicked, setLecOther] = useState(false);
+  const [courseOtherPicked, setCourseOther] = useState(false);
+  const lecOther = listed && (lecOtherPicked || (!!details.lecturer_name && !isListedLecturer(details.department, details.lecturer_name)));
+  const courses = listed ? coursesOf(details.department, lecOther ? '' : details.lecturer_name) : [];
+  const course = listed ? findCourse(details.department, lecOther ? '' : details.lecturer_name, details.course_name) : undefined;
+  const courseOther = listed && (courseOtherPicked || (!!details.course_name && !course));
+  const OTHER = '__other__';
 
   const set = (patch: Partial<CourseDetails>) => {
     const next = { ...details, ...patch };
@@ -70,7 +80,7 @@ export function StartScreen({ details, onChange, onNext }: {
         <div className="field span2">
           <label htmlFor="f-faculty">פקולטה / בית ספר</label>
           <select id="f-faculty" value={details.faculty} {...aria('faculty')}
-            onChange={(e) => set({ faculty: e.target.value, department: '' })}>
+            onChange={(e) => { set({ faculty: e.target.value, department: '' }); setLecOther(false); setCourseOther(false); }}>
             <option value="">בחרו פקולטה או בית ספר</option>
             {FACULTIES.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
@@ -80,7 +90,12 @@ export function StartScreen({ details, onChange, onNext }: {
         <div className="field span2">
           <label htmlFor="f-department">מחלקה / בית ספר</label>
           <select id="f-department" value={details.department} disabled={!details.faculty} {...aria('department')}
-            onChange={(e) => set({ department: e.target.value })}>
+            onChange={(e) => {
+              const department = e.target.value;
+              // מעבר למחלקה עם רשימה: בחירה מחדש מתוך הרשימה
+              set(hasCatalog(department) ? { department, lecturer_name: '', course_name: '' } : { department });
+              setLecOther(false); setCourseOther(false);
+            }}>
             <option value="">{details.faculty ? 'בחרו מחלקה' : 'בחרו קודם פקולטה'}</option>
             {deps.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
@@ -108,19 +123,69 @@ export function StartScreen({ details, onChange, onNext }: {
           {err('study_year')}
         </div>
 
-        <div className="field">
-          <label htmlFor="f-lecturer_name">שם המרצה</label>
-          <input id="f-lecturer_name" type="text" autoComplete="name" value={details.lecturer_name} {...aria('lecturer_name')}
-            onChange={(e) => set({ lecturer_name: e.target.value })} />
-          {err('lecturer_name')}
-        </div>
+        {listed ? (
+          <>
+            <div className="field">
+              <label htmlFor={lecOther ? 'f-lecturer_pick' : 'f-lecturer_name'}>שם המרצה</label>
+              <select id={lecOther ? 'f-lecturer_pick' : 'f-lecturer_name'} value={lecOther ? OTHER : details.lecturer_name}
+                {...(lecOther ? {} : aria('lecturer_name'))}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setLecOther(v === OTHER); setCourseOther(false);
+                  set({ lecturer_name: v === OTHER ? '' : v, course_name: '' });
+                }}>
+                <option value="">בחרו את שמכם</option>
+                {lecturersOf(details.department).map((l) => <option key={l} value={l}>{l}</option>)}
+                <option value={OTHER}>אחר – השם שלי לא ברשימה</option>
+              </select>
+              {lecOther && (
+                <input id="f-lecturer_name" type="text" autoComplete="name" className="other-input" placeholder="הקלידו את שמכם"
+                  aria-label="שם המרצה (הקלדה ידנית)" value={details.lecturer_name} {...aria('lecturer_name')}
+                  onChange={(e) => set({ lecturer_name: e.target.value })} />
+              )}
+              {err('lecturer_name')}
+            </div>
 
-        <div className="field">
-          <label htmlFor="f-course_name">שם הקורס</label>
-          <input id="f-course_name" type="text" autoComplete="off" value={details.course_name} {...aria('course_name')}
-            onChange={(e) => set({ course_name: e.target.value })} />
-          {err('course_name')}
-        </div>
+            <div className="field">
+              <label htmlFor={courseOther ? 'f-course_pick' : 'f-course_name'}>שם הקורס</label>
+              <select id={courseOther ? 'f-course_pick' : 'f-course_name'} value={courseOther ? OTHER : course ? courseLabel(course) : ''}
+                disabled={!details.lecturer_name && !lecOther} {...(courseOther ? {} : aria('course_name'))}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCourseOther(v === OTHER);
+                  const c = courses.find((x) => courseLabel(x) === v);
+                  // שנה בתואר מהרשימה, רק אם עדיין לא נבחרה
+                  set({ course_name: c ? c.name : '', ...(c?.year && !details.study_year ? { study_year: c.year } : {}) });
+                }}>
+                <option value="">{details.lecturer_name || lecOther ? 'בחרו קורס' : 'בחרו קודם מרצה'}</option>
+                {courses.map((c) => <option key={courseLabel(c)} value={courseLabel(c)}>{courseLabel(c)}</option>)}
+                <option value={OTHER}>אחר – הקורס לא ברשימה</option>
+              </select>
+              {courseOther && (
+                <input id="f-course_name" type="text" autoComplete="off" className="other-input" placeholder="הקלידו את שם הקורס"
+                  aria-label="שם הקורס (הקלדה ידנית)" value={details.course_name} {...aria('course_name')}
+                  onChange={(e) => set({ course_name: e.target.value })} />
+              )}
+              {err('course_name')}
+            </div>
+          </>
+        ) : (
+          <>
+          <div className="field">
+            <label htmlFor="f-lecturer_name">שם המרצה</label>
+            <input id="f-lecturer_name" type="text" autoComplete="name" value={details.lecturer_name} {...aria('lecturer_name')}
+              onChange={(e) => set({ lecturer_name: e.target.value })} />
+            {err('lecturer_name')}
+          </div>
+
+          <div className="field">
+            <label htmlFor="f-course_name">שם הקורס</label>
+            <input id="f-course_name" type="text" autoComplete="off" value={details.course_name} {...aria('course_name')}
+              onChange={(e) => set({ course_name: e.target.value })} />
+            {err('course_name')}
+          </div>
+          </>
+        )}
 
         {/* שדה נסתר נגד בוטים: מוסתר מהמסך, מקורא המסך ומהניווט במקלדת */}
         <div className="hp-field" aria-hidden="true">

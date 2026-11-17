@@ -5,3 +5,4 @@ dist/
 .DS_Store
 dist-admin/
 dist-admin-demo/
+dist-e2e-courses
