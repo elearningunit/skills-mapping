@@ -95,3 +95,47 @@ td.sc.empty { color: var(--muted); }
 .a-dot { min-width: 26px; text-align: center; border-radius: 5px; font-weight: 700; color: var(--lv-ink); }
 .a-dot.bad { background: #fbe9ea; color: var(--danger); }
 .a-history { margin: 0; padding-inline-start: 18px; color: var(--muted); font-size: 12.5px; }
+
+/* ---------- דוח PDF (תמיד בהיר, A4 = 794×1123) ---------- */
+.pdf-stage { position: fixed; left: -10000px; top: 0; width: 794px; overflow: hidden; height: 0; pointer-events: none; }
+.pdf-root {
+  --lv0-edge: #b8352d; --lv1-edge: #c56f22; --lv2-edge: #b99420; --lv3-edge: #5f9a3f; --lv4-edge: #1f7a43;
+  --hatch: rgba(255,255,255,.55); --surface: #fff;
+  color: var(--fg); font-family: var(--font);
+}
+.pdf-page { width: 794px; height: 1123px; overflow: hidden; background: #fff; padding: 42px 48px 36px; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; line-height: 1.45; }
+.pdf-page h1 { font-size: 21px; margin: 0; }
+.pdf-page h2 { font-size: 14px; margin: 6px 0 0; border-bottom: 1.5px solid var(--line); padding-bottom: 3px; }
+.pdf-page p { margin: 0; }
+.pdf-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid var(--accent); padding-bottom: 8px; }
+.pdf-head .eyebrow { font-size: 11px; color: var(--muted); font-weight: 500; margin: 0 0 2px; }
+.pdf-pg { font-size: 11px; color: var(--muted); }
+.pdf-foot { margin-top: auto !important; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
+.r-scope { color: var(--muted); }
+.r-kpis { display: flex; gap: 10px; }
+.r-kpis div { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; display: flex; align-items: baseline; gap: 8px; }
+.r-kpis b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.r-kpis span { color: var(--muted); }
+.r-note { background: var(--warn-bg); border-radius: 6px; padding: 4px 10px; font-size: 11.5px; }
+.r-small { font-size: 10.5px; color: var(--muted); }
+.pdf-page .chart { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.pdf-page .chart svg { width: 100%; max-width: 480px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+.chart .tick { font-size: 12px; } .chart .glabel { font-size: 14px; font-weight: 500; } .chart .val { font-size: 13px; font-weight: 500; }
+.chart .inbar { font-size: 11.5px; font-weight: 500; } .chart .na-text { font-size: 13px; }
+.chart .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; font-size: 10.5px; }
+.chart .legend span { display: inline-flex; align-items: center; gap: 5px; }
+.chart .sw { display: inline-block; width: 20px; height: 10px; border-radius: 3px; }
+.chart .sw.solid { background: var(--muted); }
+.chart .sw.hatched { background: repeating-linear-gradient(45deg, var(--muted) 0 3px, #fff 3px 6px); border: 1px solid var(--muted); }
+.chart .muted { color: var(--muted); }
+.pdf-page .insights.rich { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pdf-page .insights.rich li { border-inline-start: 3px solid var(--accent); padding-inline-start: 10px; }
+.pdf-page .insights.rich b { display: block; font-weight: 500; }
+.r-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 10.5px; table-layout: auto; }
+.r-table th, .r-table td { padding: 3px 4px; border-bottom: 1px solid var(--grid); text-align: start; vertical-align: middle; }
+.r-table th { color: var(--muted); font-weight: 500; font-size: 10px; background: #f6f8f7; text-align: center; }
+.r-table th.s { font-size: 9.5px; }
+.r-table .c { text-align: center; }
+.r-table td.sc { width: 40px; font-size: 10.5px; }
+.r-ay { color: var(--muted); font-weight: 400; }
+.r-legend { margin-top: 4px; font-size: 10.5px; }

@@ -178,6 +178,28 @@ describe('ממשק הרשות – ייצוא והרשאות', () => {
     await ctx.close();
   });
 
+  it('דוח PDF לפי סינון: רק דיווחים תקינים, קובץ PDF תקין, ללא קריאות רשת', async () => {
+    const { ctx, page, errors, external } = await open();
+    await page.waitForSelector('.a-table tbody tr');
+    await page.selectOption('#flt-department', 'סיעוד');
+    expect(await page.locator('.pdf-root .pdf-page').count()).toBe(2);
+    expect(await page.locator('.pdf-root h1').first().textContent()).toBe('מחלקת סיעוד');
+    expect(await page.locator('.pdf-root .r-courses tbody tr').count()).toBe(4); // תקינים בלבד
+    expect(await page.locator('.pdf-root .r-note').first().textContent()).toContain('2 ממתינים לבדיקה');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('button:has-text("דוח PDF")')]);
+    expect(dl.suggestedFilename()).toMatch(/^skills_report_\d{4}-\d{2}-\d{2}_\d{4}\.pdf$/);
+    const pdf = readFileSync((await dl.path())!);
+    expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+    expect((pdf.toString('latin1').match(/\/Type \/Page\b/g) ?? []).length).toBe(2);
+    expect(await page.locator('.a-notice').textContent()).toContain('2 עמודים');
+    // סינון שאין בו דיווחים תקינים: הכפתור מושבת
+    await page.selectOption('#flt-department', 'ריפוי בעיסוק');
+    expect(await page.locator('button:has-text("דוח PDF")').isDisabled()).toBe(true);
+    expect(errors).toEqual([]);
+    expect(external).toEqual([]);
+    await ctx.close();
+  });
+
   it('כשהשרת מסרב (אין הרשאה): הודעה ברורה ואין נתונים במסך', async () => {
     const { ctx, page } = await open({ deny: true });
     await page.waitForSelector('[role="alert"]');

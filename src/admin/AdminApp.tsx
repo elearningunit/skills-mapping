@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ACADEMIC_YEARS, SKILLS, STUDY_YEARS } from '../config/questionnaire';
 import { FACULTIES, departmentsOf } from '../config/units';
 import { CSV_COLUMNS, escapeCsv, guardFormula } from '../lib/csv';
@@ -10,6 +10,8 @@ import {
   flagLabel, type AdminData, type AdminRecord, type Filters,
 } from './model';
 import { DetailPanel } from './DetailPanel';
+import { AdminReport } from './AdminReport';
+import { reportFilename } from './report';
 
 type Load = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: AdminData };
 
@@ -19,6 +21,9 @@ export function AdminApp() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string>('');
   const [notice, setNotice] = useState('');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [reportDate, setReportDate] = useState(() => new Date());
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     if (!api) { setLoad({ state: 'error', message: 'המסך פועל רק מתוך אפליקציית Apps Script של הרשות.' }); return; }
@@ -40,6 +45,37 @@ export function AdminApp() {
   const c = counts(records);
   const selected = records.find((r) => r.id === selectedId) ?? null;
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
+
+  // הדוח כולל רק דיווחים תקינים מתוך התצוגה המסוננת (בלי קשר לסינון הסטטוס)
+  const reportFilters = { ...filters, status: '' as const };
+  const reportPool = useMemo(() => applyFilters(records, reportFilters), [records, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  const reportRecs = reportPool.filter((r) => r.status === 'valid');
+  const reportLeft = {
+    flagged: reportPool.filter((r) => r.status === 'flagged').length,
+    excluded: reportPool.filter((r) => r.status === 'excluded').length,
+  };
+
+  const exportPdf = async () => {
+    if (!reportRecs.length) return;
+    setPdfBusy(true); setNotice('');
+    try {
+      const now = new Date();
+      setReportDate(now);
+      await new Promise((r) => setTimeout(r, 30)); // לתת ל-React לצייר את הדוח עם התאריך
+      const { buildPdf } = await import('../lib/pdf');
+      const pages = [...(reportRef.current?.querySelectorAll<HTMLElement>('.pdf-page') ?? [])];
+      const blob = await buildPdf(pages);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = reportFilename(now);
+      document.body.appendChild(a); a.click(); a.remove();
+      setNotice(`הופק דוח PDF (${pages.length} עמודים) על ${reportRecs.length} דיווחים תקינים.`);
+    } catch (e) {
+      setNotice(`לא ניתן היה להפיק PDF: ${(e as Error).message || 'שגיאה'}`);
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   const exportCsv = () => {
     if (load.state !== 'ready') return;
@@ -127,6 +163,10 @@ export function AdminApp() {
                 </label>
                 <div className="a-filter-actions">
                   <button type="button" className="a-btn ghost" onClick={() => setFilters(EMPTY_FILTERS)}>ניקוי סינון</button>
+                  <button type="button" className="a-btn primary" onClick={() => void exportPdf()} disabled={!reportRecs.length || pdfBusy}
+                    title="דוח לפי הסינון הנוכחי, לשליחה לרמ״ח, לדיקן או למרצה. כולל רק דיווחים תקינים.">
+                    {pdfBusy ? 'מכין PDF…' : 'דוח PDF'}
+                  </button>
                   <button type="button" className="a-btn" onClick={exportCsv} disabled={!shown.length}>ייצוא CSV</button>
                 </div>
               </div>
@@ -173,6 +213,9 @@ export function AdminApp() {
                   }} />
               : <div className="a-card a-hint">בחרו שורה בטבלה כדי לראות את פרטי הדיווח ואת 20 התשובות.</div>}
           </aside>
+          <div className="pdf-stage">
+            <AdminReport ref={reportRef} recs={reportRecs} filters={reportFilters} excluded={reportLeft} date={reportDate} />
+          </div>
         </main>
       )}
     </div>

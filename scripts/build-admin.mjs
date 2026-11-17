@@ -12,7 +12,8 @@ const open = html.indexOf('<script type="module" crossorigin>');
 if (open < 0) throw new Error('inline module script not found');
 const start = open + '<script type="module" crossorigin>'.length;
 const end = html.indexOf('</script>', start);
-const code = html.slice(start, end);
+// עוזר הטעינה של Vite מעביר import.meta.url רק לפתרון כתובות של קבצים נפרדים — אין כאלה בקובץ יחיד
+const code = html.slice(start, end).replaceAll('import.meta.url', 'document.baseURI');
 if (/\bimport\s*\(|^\s*import\s|^\s*export\s|import\.meta/m.test(code)) throw new Error('bundle still uses module syntax');
 html = html.slice(0, open) + html.slice(end + '</script>'.length);
 const bodyEnd = html.lastIndexOf('</body>');
