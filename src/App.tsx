@@ -11,7 +11,7 @@ import { Stepper, type StepState } from './components/Stepper';
 import { ConfirmButton } from './components/ConfirmButton';
 
 const EMPTY_DETAILS: CourseDetails = {
-  faculty: '', department: '', academic_year: '', study_year: null, lecturer_name: '', course_name: '',
+  faculty: '', department: '', academic_year: '', study_year: null, lecturer_name: '', course_name: '', course_number: '',
 };
 
 export function App() {

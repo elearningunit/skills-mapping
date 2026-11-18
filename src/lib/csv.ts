@@ -19,6 +19,8 @@ export const CSV_COLUMNS: string[] = [
   ...SKILLS.map((s) => `${s.key}_status`),
   // שנה אקדמית — נוספה בסוף, כדי לא להזיז עמודות קיימות
   'academic_year',
+  // מספר הקורס מרשימת הקורסים (ריק אם הוקלד ידנית) — נוסף בסוף
+  'course_number',
 ];
 
 export const STATUS_ANSWERED = 'answered';
@@ -48,6 +50,7 @@ export function mappingToRow(m: Mapping): (string | number)[] {
     assessment_date: m.assessment_date,
     questionnaire_version: QUESTIONNAIRE_VERSION,
     academic_year: d.academic_year,
+    course_number: d.course_number ?? '',
   };
   for (const s of SKILLS) {
     const score = sc[s.key];

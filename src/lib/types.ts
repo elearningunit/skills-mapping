@@ -7,6 +7,8 @@ export interface CourseDetails {
   academic_year: string; // שנה אקדמית, למשל תשפ״ז
   lecturer_name: string;
   course_name: string;
+  /** מספר הקורס מתוך רשימת הקורסים; ריק כשהקורס הוקלד ידנית ("אחר") */
+  course_number?: string;
 }
 
 export type Answers = Partial<Record<ItemCode, Rating>>;

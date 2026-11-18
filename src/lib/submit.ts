@@ -8,7 +8,7 @@ export function buildPayload(m: Mapping): { row: Record<string, string | number>
   return { row: Object.fromEntries(CSV_COLUMNS.map((c, i) => [c, values[i]])), hp: honeypot.value };
 }
 
-export type SubmitResult = 'ok' | 'too_fast' | 'rejected' | 'sent_unconfirmed' | 'failed';
+export type SubmitResult = 'ok' | 'too_fast' | 'busy' | 'rejected' | 'sent_unconfirmed' | 'failed';
 
 /**
  * שליחה לקולט. גוף text/plain כדי למנוע בקשת preflight (Apps Script אינו תומך בה).
@@ -24,9 +24,10 @@ export async function submitMapping(url: string, m: Mapping, fetchImpl: typeof f
   try {
     const res = await fetchImpl(url, init);
     const data = (await res.json()) as { ok?: boolean; error?: string };
-    return data.ok ? 'ok' : data.error === 'too_fast' || data.error === 'busy' ? 'too_fast' : 'rejected';
+    return data.ok ? 'ok' : data.error === 'too_fast' ? 'too_fast' : data.error === 'busy' ? 'busy' : 'rejected';
   } catch {
-    // אם הדפדפן אינו מאפשר לקרוא את התשובה, שולחים בלי לקרוא אותה
+    // אם הדפדפן אינו מאפשר לקרוא את התשובה, שולחים בלי לקרוא אותה.
+    // במקרה כזה אין אישור שהמיפוי נשמר, והמרצה מתבקש לשלוח שוב (שליחה חוזרת מעדכנת, ואינה יוצרת כפילות).
     try {
       await fetchImpl(url, { ...init, mode: 'no-cors' });
       return 'sent_unconfirmed';

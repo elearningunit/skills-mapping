@@ -15,7 +15,7 @@ export default defineConfig({
   plugins: [react(), viteSingleFile()],
   resolve: { alias: { '@courses': courses } },
   build: { assetsInlineLimit: 100_000_000, chunkSizeWarningLimit: 2000 },
-  // פלט ASCII בלבד: תווים מיוחדים נכתבים כ-\\u escapes
-  esbuild: { charset: 'ascii' },
+  // פלט UTF-8 (הדף מוגדר <meta charset="UTF-8">): עברית נשמרת כמות שהיא ולא כ-\\u escapes, וכך הקובץ קטן בהרבה
+  esbuild: { charset: 'utf8' },
   test: { environment: 'node', include: ['tests/**/*.test.ts'] },
 });

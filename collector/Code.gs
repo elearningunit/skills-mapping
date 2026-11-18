@@ -24,7 +24,7 @@ var ACADEMIC_YEARS = ['תשפ״ו', 'תשפ״ז', 'תשפ״ח', 'תשפ״ט'];
 // גיבוי בלבד: אם לא הוגדר מאפיין NOTIFY_EMAIL, משתמשים בערך הזה (בגרסה הציבורית — ריק)
 var NOTIFY_EMAIL = '';
 
-// העמודות, בסדר זהה ל-CSV של האתר (41 עמודות)
+// העמודות, בסדר זהה ל-CSV של האתר (42 עמודות)
 var CSV_COLUMNS = [
   'assessment_id', 'faculty', 'department', 'study_year', 'lecturer_name', 'course_name',
   'assessment_date', 'questionnaire_version',
@@ -32,7 +32,7 @@ var CSV_COLUMNS = [
   'T_P', 'T_A', 'C_P', 'C_A', 'R_P', 'R_A',
   'H1', 'H2', 'H3', 'H4', 'H5', 'H_P', 'H_A',
   'T_status', 'C_status', 'R_status', 'H_status',
-  'academic_year'
+  'academic_year', 'course_number'
 ];
 // עמודות ניהול, בסוף (נוספו בגרסה 2 של הקולט)
 var ADMIN_COLUMNS = ['created_at', 'submissions', 'status', 'flags', 'dup_key', 'decision'];
@@ -127,7 +127,8 @@ function doPost(e) {
   if (limited) return json_({ ok: false, error: limited });
 
   var lock = LockService.getScriptLock();
-  lock.waitLock(15000);
+  // עומס: מחזירים תשובה מסודרת (busy) במקום שגיאה, כדי שהמרצה יידע לנסות שוב
+  if (!lock.tryLock(20000)) return json_({ ok: false, error: 'busy' });
   try {
     var sheet = getSheet_();
     var clean = clean_(body.row);
@@ -141,10 +142,18 @@ function doPost(e) {
     var created = prev ? (prev[col_('created_at') - 1] || prev[0]) : now;
     var submissions = prev ? (Number(prev[col_('submissions') - 1]) || 1) + 1 : 1;
     var decision = prev ? String(prev[col_('decision') - 1] || '') : '';
+    // דיווח שהרשות אישרה, ונשלח שוב עם סימון חדש שלא היה בזמן ההכרעה — חוזר לבדיקה
+    var prevFlags = prev ? String(prev[col_('flags') - 1] || '').split(' ') : [];
+    var reopened = decision === 'included' && clean.flags.some(function (f) { return prevFlags.indexOf(f) < 0; });
+    if (reopened) decision = '';
     var values = buildRow_(now, clean, created, submissions, decision);
 
-    if (existing > 0) sheet.getRange(existing, 1, 1, values.length).setValues([values]);
-    else sheet.getRange(sheet.getLastRow() + 1, 1, 1, values.length).setValues([values]);
+    if (existing > 0) {
+      // עמודת ההכרעה (האחרונה) שייכת לממשק הרשות: לא נכתבת מחדש, אלא אם הדיווח חזר לבדיקה
+      var width = reopened ? values.length : values.length - 1;
+      sheet.getRange(existing, 1, 1, width).setValues([values.slice(0, width)]);
+    } else sheet.getRange(sheet.getLastRow() + 1, 1, 1, values.length).setValues([values]);
+    if (reopened) log_('collector', 'reopened', id, clean.flags.join(' '));
 
     var status = statusOf_(values);
     log_('collector', existing > 0 ? 'updated' : 'received', id, status + (clean.flags.length ? ' ' + clean.flags.join(' ') : ''));
@@ -179,6 +188,11 @@ function clean_(r) {
   v.department = text('department', 120);
   v.lecturer_name = text('lecturer_name', 150);
   v.course_name = text('course_name', 200);
+  // מספר קורס: לא חובה (ריק = הוקלד ידנית); נשמר כטקסט כדי לשמור אפסים מובילים
+  var cn = r.course_number === undefined || r.course_number === null ? '' : String(r.course_number).trim();
+  if (cn === '') v.course_number = '';
+  else if (/^\d{1,12}$/.test(cn)) v.course_number = "'" + cn;
+  else { flag('invalid_course_number'); v.course_number = rawText(cn); }
   if (!UNITS[v.faculty] || UNITS[v.faculty].indexOf(v.department) < 0) flag('unknown_unit');
 
   var year = Number(r.study_year);

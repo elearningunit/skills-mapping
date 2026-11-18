@@ -28,7 +28,7 @@ export function DetailPanel({ r, all, log, onDecide }: {
     <div className="a-card a-detail">
       <h2>{r.course} · {r.lecturer}</h2>
       <p className="a-meta">
-        {r.faculty} · {r.department} · {r.academicYear} · {yearLabel(r.studyYear)}
+        {r.courseNumber && <>קורס <span dir="ltr">{r.courseNumber}</span> · </>}{r.faculty} · {r.department} · {r.academicYear} · {yearLabel(r.studyYear)}
         <br />נוצר {formatDate(r.createdAt)} · תאריך מיפוי {formatDate(r.assessmentDate)} · {r.submissions === 1 ? 'נשלח פעם אחת' : `נשלח ${r.submissions} פעמים`}
       </p>
       <p><span className={`a-chip ${r.status}`}>{STATUS_LABELS[r.status]}</span>

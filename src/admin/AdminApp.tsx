@@ -22,7 +22,7 @@ export function AdminApp() {
   const [selectedId, setSelectedId] = useState<string>('');
   const [notice, setNotice] = useState('');
   const [pdfBusy, setPdfBusy] = useState(false);
-  const [reportDate, setReportDate] = useState(() => new Date());
+  const [reportDate, setReportDate] = useState<Date | null>(null); // הדוח נבנה רק בזמן ההפקה
   const reportRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
@@ -49,7 +49,7 @@ export function AdminApp() {
   // הדוח כולל רק דיווחים תקינים מתוך התצוגה המסוננת (בלי קשר לסינון הסטטוס)
   const reportFilters = { ...filters, status: '' as const };
   const reportPool = useMemo(() => applyFilters(records, reportFilters), [records, filters]); // eslint-disable-line react-hooks/exhaustive-deps
-  const reportRecs = reportPool.filter((r) => r.status === 'valid');
+  const reportRecs = useMemo(() => reportPool.filter((r) => r.status === 'valid'), [reportPool]);
   const reportLeft = {
     flagged: reportPool.filter((r) => r.status === 'flagged').length,
     excluded: reportPool.filter((r) => r.status === 'excluded').length,
@@ -74,6 +74,7 @@ export function AdminApp() {
       setNotice(`לא ניתן היה להפיק PDF: ${(e as Error).message || 'שגיאה'}`);
     } finally {
       setPdfBusy(false);
+      setReportDate(null);
     }
   };
 
@@ -159,7 +160,7 @@ export function AdminApp() {
                   </select>
                 </label>
                 <label className="a-search">חיפוש
-                  <input id="flt-q" type="search" placeholder="שם קורס או מרצה" value={filters.q} onChange={(e) => set({ q: e.target.value })} />
+                  <input id="flt-q" type="search" placeholder="שם קורס, מספר קורס או מרצה" value={filters.q} onChange={(e) => set({ q: e.target.value })} />
                 </label>
                 <div className="a-filter-actions">
                   <button type="button" className="a-btn ghost" onClick={() => setFilters(EMPTY_FILTERS)}>ניקוי סינון</button>
@@ -213,9 +214,11 @@ export function AdminApp() {
                   }} />
               : <div className="a-card a-hint">בחרו שורה בטבלה כדי לראות את פרטי הדיווח ואת 20 התשובות.</div>}
           </aside>
-          <div className="pdf-stage">
-            <AdminReport ref={reportRef} recs={reportRecs} filters={reportFilters} excluded={reportLeft} date={reportDate} />
-          </div>
+          {reportDate && (
+            <div className="pdf-stage">
+              <AdminReport ref={reportRef} recs={reportRecs} filters={reportFilters} excluded={reportLeft} date={reportDate} />
+            </div>
+          )}
         </main>
       )}
     </div>
@@ -230,7 +233,7 @@ function Row({ r, selected, onSelect }: { r: AdminRecord; selected: boolean; onS
       <td>{r.department}</td>
       <td className="nowrap">{r.academicYear}</td>
       <td className="c">{STUDY_YEARS.find((y) => y.value === r.studyYear)?.label.replace('שנה ', '') ?? ''}</td>
-      <td><b>{r.course}</b></td>
+      <td><b>{r.course}</b>{r.courseNumber && <small className="a-num" dir="ltr"> {r.courseNumber}</small>}</td>
       <td>{r.lecturer}</td>
       {r.skills.map((s) =>
         s.notApplicable

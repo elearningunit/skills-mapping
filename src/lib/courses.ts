@@ -34,8 +34,17 @@ export function isListedLecturer(department: string, lecturer: string): boolean 
   return !!lecturer && lecturersOf(department).some((l) => key(l) === key(lecturer));
 }
 
-export function findCourse(department: string, lecturer: string, course: string): CatalogCourse | undefined {
-  return course ? coursesOf(department, lecturer).find((c) => key(c.name) === key(course)) : undefined;
+/** הקורס שנבחר: לפי מספר הקורס (מבחין בין קורסים בעלי אותו שם), ואם אין — לפי השם */
+export function findCourse(department: string, lecturer: string, course: string, number = ''): CatalogCourse | undefined {
+  if (!course) return undefined;
+  const list = coursesOf(department, lecturer);
+  return (number && list.find((c) => c.number === number && key(c.name) === key(course)))
+    || list.find((c) => key(c.name) === key(course));
+}
+
+/** מפתח ייחודי לאפשרות ברשימה */
+export function courseKey(c: CatalogCourse): string {
+  return `${c.number}|${c.name}`;
 }
 
 /** תווית ברשימה: שם הקורס ומספרו, כדי להבחין בין קורסים בעלי שם דומה */

@@ -14,7 +14,7 @@ export function DetailsList({ m }: { m: Mapping }) {
   const d = m.details;
   const rows: [string, string, boolean?][] = [
     ['שם המרצה', d.lecturer_name],
-    ['שם הקורס', d.course_name],
+    ['שם הקורס', d.course_number ? `${d.course_name} (${d.course_number})` : d.course_name],
     ['פקולטה / בית ספר', d.faculty],
     ['מחלקה / בית ספר', d.department],
     ['שנה אקדמית', d.academic_year],

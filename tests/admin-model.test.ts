@@ -26,6 +26,13 @@ describe('ממשק הרשות – מודל', () => {
     expect([r.submissions, r.studyYear, r.status]).toEqual([2, 1, 'valid']);
   });
 
+  it('הכרעת הרשות קובעת את הסטטוס גם אם הסטטוס בגיליון לא עודכן; מספר קורס מוצג בלי גרש', () => {
+    expect(rec({ status: 'valid', decision: 'excluded' }).status).toBe('excluded');
+    expect(rec({ status: 'flagged', flags: 'unknown_unit', decision: 'included' }).status).toBe('valid');
+    expect(rec({ course_number: "'0123" }).courseNumber).toBe('0123');
+    expect(applyFilters([rec({ course_number: 5115510 })], { ...EMPTY_FILTERS, q: '5115510' })).toHaveLength(1);
+  });
+
   it('שורה שלא עברה הסבה מוצגת "לבדיקה" ואינה נספרת', () => {
     const r = rec({ status: '', flags: '' });
     expect(r.status).toBe('flagged');

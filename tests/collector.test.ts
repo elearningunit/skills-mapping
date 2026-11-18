@@ -40,7 +40,7 @@ function fakeSheet() {
   };
 }
 
-function loadCollector(opts: { email?: string; mailFails?: boolean } = {}) {
+function loadCollector(opts: { email?: string; mailFails?: boolean; lockBusy?: boolean } = {}) {
   const sheets: Record<string, ReturnType<typeof fakeSheet>> = {};
   const sheetFor = (name: string) => (sheets[name] ||= fakeSheet());
   const mails: { to: string; subject: string; body: string }[] = [];
@@ -53,7 +53,7 @@ function loadCollector(opts: { email?: string; mailFails?: boolean } = {}) {
         getUrl: () => 'https://docs.google.com/spreadsheets/d/X',
       }),
     },
-    LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
+    LockService: { getScriptLock: () => ({ waitLock: () => {}, tryLock: () => !opts.lockBusy, releaseLock: () => {} }) },
     CacheService: {
       getScriptCache: () => ({ get: (k: string) => cache.get(k) ?? null, put: (k: string, v: string) => { cache.set(k, v); } }),
     },
@@ -238,6 +238,46 @@ describe('קולט v2: כפילות לוגית', () => {
     post(buildPayload({ ...dup, assessment_id: ID3 }));
     expect(rec(3).flags).toContain('possible_duplicate'); // הדיווח הראשון עדיין תקין
   });
+
+  it('שליחה חוזרת אינה כותבת את עמודת ההכרעה (שייכת לממשק הרשות)', () => {
+    const { post, rec, data, header } = loadCollector();
+    post(buildPayload(base()));
+    // ממשק הרשות החריג את הדיווח, והסטטוס בגיליון עוד לא התעדכן (כמו בהכרעה שמתרחשת באמצע שליחה)
+    data()[1][header.indexOf('decision')] = 'excluded';
+    post(buildPayload(base()));
+    expect(rec(1).decision).toBe('excluded');
+    expect(rec(1).status).toBe('excluded');
+  });
+
+  it('דיווח שאושר ונשלח שוב עם סימון חדש חוזר לבדיקה; אותו סימון כמו בזמן האישור — נשאר מאושר', () => {
+    const { post, rec, data, header, log } = loadCollector();
+    post(buildPayload(base()));
+    const dup = base({ assessment_id: ID2 }, { lecturer_name: 'ד"ר ישראלה ישראלי' });
+    post(buildPayload(dup));
+    data()[2][header.indexOf('decision')] = 'included';
+    post(buildPayload(dup)); // אותו סימון (כפילות) — ההכרעה נשמרת
+    expect([rec(2).status, rec(2).decision]).toEqual(['valid', 'included']);
+    post(buildPayload({ ...dup, details: { ...dup.details, department: 'סיעוד', faculty: 'הפקולטה להנדסה' } }));
+    expect([rec(2).status, rec(2).decision]).toEqual(['flagged', '']);
+    expect(log().some((l) => l[2] === 'reopened' && l[3] === ID2)).toBe(true);
+  });
+
+  it('מספר הקורס נשמר כטקסט (כולל אפסים מובילים); ריק מותר; ערך לא מספרי מסומן', () => {
+    const { post, rec } = loadCollector();
+    post(buildPayload(base({}, { course_number: '0123456' })));
+    expect(rec(1).course_number).toBe('0123456');
+    expect(rec(1).status).toBe('valid');
+    post(buildPayload(base({ assessment_id: ID2 }, { course_number: '' , course_name: 'קורס אחר' })));
+    expect([rec(2).course_number, rec(2).status]).toEqual(['', 'valid']);
+    post(buildPayload(base({ assessment_id: ID3 }, { course_number: 'abc', course_name: 'קורס שלישי' })));
+    expect(rec(3).flags).toBe('invalid_course_number');
+  });
+
+  it('עומס: כשהנעילה תפוסה מוחזר busy ודבר אינו נכתב', () => {
+    const { post, data } = loadCollector({ lockBusy: true });
+    expect(post(buildPayload(base()))).toEqual({ ok: false, error: 'busy' });
+    expect(data().length).toBeLessThanOrEqual(1);
+  });
 });
 
 describe('קולט v2: הגנה מהצפה ומבוטים', () => {
@@ -341,5 +381,14 @@ describe('שליחה מהאתר', () => {
     expect(await submitMapping('u', mapping(fill(1)), rej as unknown as typeof fetch)).toBe('rejected');
     const down = vi.fn(async () => { throw new TypeError('network'); });
     expect(await submitMapping('u', mapping(fill(1)), down as unknown as typeof fetch)).toBe('failed');
+    const busy = vi.fn(async () => new Response(JSON.stringify({ ok: false, error: 'busy' })));
+    expect(await submitMapping('u', mapping(fill(1)), busy as unknown as typeof fetch)).toBe('busy');
+  });
+
+  it('תשובה שאי אפשר לקרוא (למשל דף שגיאה): שליחה נוספת, ותוצאה "לא אושר" — לא "נשלח"', async () => {
+    const calls: RequestInit[] = [];
+    const f = vi.fn(async (_u: string, init: RequestInit) => { calls.push(init); return new Response('<html>error</html>'); });
+    expect(await submitMapping('u', mapping(fill(1)), f as unknown as typeof fetch)).toBe('sent_unconfirmed');
+    expect(calls.map((c) => c.mode)).toEqual([undefined, 'no-cors']);
   });
 });

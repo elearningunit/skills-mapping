@@ -98,7 +98,7 @@ export const AdminReport = forwardRef<HTMLDivElement, {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><b>{r.course}</b>{!filters.academicYear && <span className="r-ay"> · {r.academicYear}</span>}</td>
+                  <td><b>{r.course}</b>{r.courseNumber && <span className="r-ay"> ({r.courseNumber})</span>}{!filters.academicYear && <span className="r-ay"> · {r.academicYear}</span>}</td>
                   <td>{r.lecturer}</td>
                   <td className="c">{STUDY_YEARS.find((y) => y.value === r.studyYear)?.label.replace('שנה ', '') ?? ''}</td>
                   {r.skills.map((s) => (s.notApplicable

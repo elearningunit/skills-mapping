@@ -23,6 +23,7 @@ export interface AdminRecord {
   studyYear: number | null;
   lecturer: string;
   course: string;
+  courseNumber: string;
   version: string;
   answers: Partial<Record<ItemCode, number | null>>;
   skills: SkillResult[];
@@ -64,6 +65,7 @@ export function toRecord(r: Record<string, unknown>): AdminRecord {
     };
   });
   const status = String(r.status || '');
+  const decision = (['included', 'excluded'].includes(String(r.decision)) ? r.decision : '') as Decision;
   return {
     id: String(r.assessment_id ?? ''),
     createdAt: String(r.created_at || r.received_at || ''),
@@ -75,13 +77,16 @@ export function toRecord(r: Record<string, unknown>): AdminRecord {
     studyYear: num(r.study_year),
     lecturer: String(r.lecturer_name ?? ''),
     course: String(r.course_name ?? ''),
+    courseNumber: String(r.course_number ?? '').replace(/^'/, ''),
     version: String(r.questionnaire_version ?? ''),
     answers,
     skills,
     // שורה שלא עברה הסבה (אין סטטוס) מוצגת "לבדיקה", כדי שלא תיספר בטעות
-    status: status === 'valid' || status === 'excluded' ? status : 'flagged',
+    // ההכרעה של הרשות קובעת; בלעדיה — הסטטוס שהקולט חישב. שורה ללא סטטוס (לא עברה הסבה) — "לבדיקה"
+    status: decision === 'excluded' ? 'excluded' : decision === 'included' ? 'valid'
+      : status === 'valid' || status === 'excluded' ? status : 'flagged',
     flags: String(r.flags || '').split(' ').filter(Boolean).concat(status ? [] : ['not_migrated']),
-    decision: (['included', 'excluded'].includes(String(r.decision)) ? r.decision : '') as Decision,
+    decision,
     submissions: num(r.submissions) ?? 1,
   };
 }
@@ -92,7 +97,7 @@ export const STATUS_LABELS: Record<Status, string> = { valid: 'תקין', flagge
 
 const SKILL_NAME = Object.fromEntries(SKILLS.map((s) => [s.key, s.name])) as Record<SkillKey, string>;
 const FIELD_NAMES: Record<string, string> = {
-  faculty: 'פקולטה', department: 'מחלקה', lecturer_name: 'שם המרצה', course_name: 'שם הקורס',
+  faculty: 'פקולטה', department: 'מחלקה', lecturer_name: 'שם המרצה', course_name: 'שם הקורס', course_number: 'מספר קורס',
   study_year: 'שנה בתואר', academic_year: 'שנה אקדמית', assessment_date: 'תאריך המיפוי', questionnaire_version: 'גרסת שאלון',
 };
 
@@ -141,7 +146,7 @@ export function actionsFor(r: AdminRecord): { action: Action; label: string; pri
 
 export const ACTION_LOG_LABELS: Record<string, string> = {
   received: 'התקבל', updated: 'עודכן (נשלח שוב)', migrated: 'הוסב לקולט החדש',
-  included: 'הוכלל בחישובים', excluded: 'הוחרג', reset: 'ההכרעה בוטלה', included_replacing: 'הוכלל במקום הדיווח הקודם',
+  included: 'הוכלל בחישובים', excluded: 'הוחרג', reopened: 'נשלח שוב עם שינוי וחזר לבדיקה', reset: 'ההכרעה בוטלה', included_replacing: 'הוכלל במקום הדיווח הקודם',
 };
 
 export function yearLabel(y: number | null): string {
@@ -189,7 +194,7 @@ export function applyFilters(rows: AdminRecord[], f: Filters): AdminRecord[] {
     (!f.academicYear || r.academicYear === f.academicYear) &&
     (!f.studyYear || String(r.studyYear) === f.studyYear) &&
     (!f.status || r.status === f.status) &&
-    (!q || normalize(`${r.course} ${r.lecturer}`).includes(q)),
+    (!q || normalize(`${r.course} ${r.courseNumber} ${r.lecturer}`).includes(q)),
   );
 }
 

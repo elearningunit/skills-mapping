@@ -152,7 +152,7 @@ describe('ממשק המרצה – שאלון', () => {
 });
 
 describe('ממשק המרצה – תוצאות וייצוא', () => {
-  it('סיכום מציג "לא רלוונטי"; CSV עם 41 עמודות; PDF בשני עמודים; ללא שגיאות וללא קריאות רשת', async () => {
+  it('סיכום מציג "לא רלוונטי"; CSV עם 42 עמודות; PDF בשני עמודים; ללא שגיאות וללא קריאות רשת', async () => {
     const { ctx, page, errors, external } = await open();
     await fillDetails(page);
     await answerAll(page);
@@ -164,7 +164,7 @@ describe('ממשק המרצה – תוצאות וייצוא', () => {
     const csv = readFileSync(fileURLToPath(new URL(`file://${await csvDl.path()}`)), 'utf8');
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     const [head, row] = parseCsv(csv);
-    expect(head).toHaveLength(41);
+    expect(head).toHaveLength(42);
     const rec = Object.fromEntries(head.map((h, i) => [h, row[i]]));
     expect([rec.course_name, rec.academic_year, rec.T_P, rec.R1, rec.R_status]).toEqual(['קורס, "לבדיקה"', 'תשפ״ז', '3.25', '', 'not_applicable']);
     expect(rec.assessment_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -207,7 +207,7 @@ describe('ממשק המרצה – שליחה לרשות', () => {
     expect(posts).toHaveLength(1);
     const body = posts[0] as { row: Record<string, unknown>; hp: string };
     expect(body.hp).toBe('');
-    expect(Object.keys(body.row)).toHaveLength(41);
+    expect(Object.keys(body.row)).toHaveLength(42);
     expect([body.row.department, body.row.academic_year, body.row.R_status]).toEqual(['סיעוד', 'תשפ״ז', 'not_applicable']);
     await page.click('button:has-text("שליחה לרשות")');
     await page.waitForFunction(() => document.querySelectorAll('button[disabled]').length === 0);
@@ -249,6 +249,15 @@ describe('ממשק המרצה – בחירה מרשימת הקורסים', () =>
     await c.page.selectOption('#f-department', 'סיעוד');
     return c;
   }
+
+  it('לפני בחירת מחלקה: רשימות נעולות עם "בחרו קודם מחלקה" (לא שדות הקלדה)', async () => {
+    const { ctx, page } = await open();
+    await page.goto(LISTED);
+    expect(await page.locator('select#f-lecturer_name').isDisabled()).toBe(true);
+    expect(await page.locator('select#f-lecturer_name option').first().textContent()).toBe('בחרו קודם מחלקה');
+    expect(await page.locator('input#f-lecturer_name').count()).toBe(0);
+    await ctx.close();
+  });
 
   it('בוחרים מרצה ואז רק את הקורסים שלו; השנה בתואר מתמלאת מהרשימה', async () => {
     const { ctx, page, errors } = await openListed();
