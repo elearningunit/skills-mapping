@@ -15,8 +15,10 @@
 3. **קובץ המסך:**
    - לוחצים **+** ליד "קבצים" ← **HTML** ← קוראים לקובץ בדיוק `index`. העורך יוסיף `.html` לבד.
    - מוחקים את מה שבתוכו, ומדביקים את התוכן של
-     https://github.com/elearningunit/skills-mapping/blob/main/admin/apps-script/index.html
-     (כפתור ההעתקה שליד "Raw"). הקובץ ארוך, ולכן ההדבקה יכולה לקחת כמה שניות. שומרים.
+     https://raw.githubusercontent.com/elearningunit/skills-mapping/main/admin/apps-script/index.html
+     (קובץ קצר, כ-15 שורות). שומרים.
+   - הקובץ הזה רק טוען את קוד המסך מהאתר (`https://elearningunit.github.io/skills-mapping/admin/admin.js`),
+     ולכן **עדכונים למסך מגיעים לבד** עם כל פרסום של האתר, בלי להדביק מחדש.
 4. **הגדרות:** גלגל השיניים (**הגדרות הפרויקט**) ← **מאפייני סקריפט** ← מוסיפים שני מאפיינים:
 
    | מאפיין | ערך |
@@ -41,14 +43,15 @@
 
 ## עדכון בעתיד
 
-כשהמסך מתעדכן, מדביקים מחדש את `index.html` (ואם השתנה, גם את `Code.gs`) ←
-**פריסה ← ניהול פריסות** ← עיפרון ← **גרסה: גרסה חדשה** ← **פריסה**. הכתובת נשארת זהה.
+- **שינוי במסך:** אין מה לעשות. קוד המסך מתפרסם עם האתר ונטען משם (ייתכן עיכוב של עד 10 דקות בגלל זיכרון המטמון).
+- **שינוי ב-`Code.gs` של ממשק הרשות:** מדביקים מחדש ← **פריסה ← ניהול פריסות** ← עיפרון ← **גרסה: גרסה חדשה** ← **פריסה**. הכתובת נשארת זהה.
 
 ## למפתחים
 
-- המסך: `src/admin/` (React). בנייה לקובץ ההתקנה: `npm run build:admin`, שיוצר את `admin/apps-script/index.html`.
-  תהליך ה-GitHub נכשל אם הקובץ במאגר לא תואם לקוד.
+- המסך: `src/admin/` (React). `npm run build:admin` בונה את `dist/admin/admin.js` (קובץ JS יחיד, כולל העיצוב והגופן),
+  שמתפרסם ב-GitHub Pages יחד עם האתר. `admin/apps-script/index.html` הוא דף טעינה קטן וקבוע.
+  הסיבה: קובץ HTML גדול שמודבק ל-Apps Script עובר עיבוד ב-HtmlService ונשבר (SyntaxError), וגם מחייב הדבקה מחדש בכל עדכון.
 - תצוגה מקומית עם נתוני דוגמה בדויים: `npm run build:admin-demo` ← `dist-admin-demo/admin-demo.html`.
   נתוני הדוגמה לא נכללים בקובץ ההתקנה.
 - בדיקות: `tests/admin-server.test.ts` (הרשאות והכרעות מול גיליון מדומה, יחד עם הקולט), `tests/admin-model.test.ts`,
-  ו-`tests/e2e/admin.e2e.ts` (דפדפן, מול קובץ ההתקנה, עם `google.script.run` מדומה).
+  ו-`tests/e2e/admin.e2e.ts` (דפדפן, מול דף הטעינה עם הקובץ הבנוי, ועם `google.script.run` מדומה).

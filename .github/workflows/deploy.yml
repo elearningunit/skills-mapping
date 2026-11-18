@@ -27,9 +27,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      # ממשק הרשות: הקובץ שמותקן ב-Apps Script חייב להיות תואם לקוד
+      # ממשק הרשות: dist/admin/admin.js מתפרסם יחד עם האתר; דף ה-Apps Script טוען אותו משם
       - run: npm run build:admin
-      - run: git diff --exit-code admin/apps-script/index.html || (echo "admin/apps-script/index.html אינו מעודכן — הריצו npm run build:admin" && exit 1)
       # בדיקות דפדפן מול האתר הבנוי (Chromium). אם נכשלות — הגרסה אינה מתפרסמת.
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

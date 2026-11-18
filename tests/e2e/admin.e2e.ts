@@ -1,16 +1,23 @@
 // בדיקות דפדפן לממשק הרשות, מול הקובץ שמותקן ב-Apps Script (admin/apps-script/index.html).
 // google.script.run מוחלף בשרת מדומה בזיכרון. נתוני הדוגמה בדויים.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser, type Page } from 'playwright';
 import { parseCsv } from '../../src/lib/csvParse.mjs';
 import { demoApi } from '../../src/admin/demo';
 
-const PAGE = new URL('../../admin/apps-script/index.html', import.meta.url).href;
+// דף ה-Apps Script כפי שהוא, כשהקוד נטען מהקובץ הבנוי (dist/admin/admin.js) במקום מ-GitHub Pages
+const LIVE_SRC = 'https://elearningunit.github.io/skills-mapping/admin/admin.js';
+const loader = readFileSync(new URL('../../admin/apps-script/index.html', import.meta.url), 'utf8');
+const PAGE_FILE = new URL('../../dist-e2e-courses/admin-test-page.html', import.meta.url);
+let PAGE = '';
 let browser: Browser;
 let fixture: Awaited<ReturnType<ReturnType<typeof demoApi>['listMappings']>>;
 
 beforeAll(async () => {
+  if (!loader.includes(LIVE_SRC)) throw new Error('admin/apps-script/index.html אינו טוען את admin.js מהאתר');
+  writeFileSync(PAGE_FILE, loader.replace(LIVE_SRC, new URL('../../dist/admin/admin.js', import.meta.url).href));
+  PAGE = PAGE_FILE.href;
   browser = await chromium.launch();
   fixture = await demoApi().listMappings();
 });
@@ -196,6 +203,15 @@ describe('ממשק הרשות – ייצוא והרשאות', () => {
     expect(await page.locator('button:has-text("דוח PDF")').isDisabled()).toBe(true);
     expect(errors).toEqual([]);
     expect(external).toEqual([]);
+    await ctx.close();
+  });
+
+  it('כשקוד המסך לא נטען (אין חיבור): הודעה ברורה במקום מסך ריק', async () => {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    writeFileSync(new URL('../../dist-e2e-courses/admin-test-offline.html', import.meta.url), loader.replace(LIVE_SRC, 'file:///nonexistent/admin.js'));
+    await page.goto(new URL('../../dist-e2e-courses/admin-test-offline.html', import.meta.url).href);
+    await page.waitForFunction(() => document.getElementById('boot')?.textContent?.includes('לא ניתן'));
     await ctx.close();
   });
 

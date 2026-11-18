@@ -10,8 +10,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "sync:collector": "node scripts/sync-collector.mjs",
-    "test:e2e": "COURSES_JSON=tests/fixtures/courses.json vite build --outDir dist-e2e-courses --emptyOutDir && node scripts/postbuild.mjs dist-e2e-courses/index.html && vitest run -c vitest.e2e.config.ts",
-    "build:admin": "tsc && vite build -c vite.admin.config.ts && node scripts/build-admin.mjs",
+    "test:e2e": "npm run build:admin && COURSES_JSON=tests/fixtures/courses.json vite build --outDir dist-e2e-courses --emptyOutDir && node scripts/postbuild.mjs dist-e2e-courses/index.html && vitest run -c vitest.e2e.config.ts",
+    "build:admin": "vite build -c vite.admin-web.config.ts",
     "build:admin-demo": "vite build -c vite.admin.config.ts --mode demo"
   },
   "author": "",
