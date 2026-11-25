@@ -35,7 +35,14 @@ async function open(opts: { width?: number; collectorReply?: object } = {}): Pro
     if (!/^(file|data|blob):/.test(u) && !u.startsWith('https://script.google.com/')) external.push(u);
   });
   await page.goto(SITE);
+  await begin(page);
   return { ctx, page, errors, external, posts };
+}
+
+/** עמוד הפתיחה → פרטי הקורס */
+async function begin(page: Page) {
+  await page.click('.intro button.primary');
+  await page.waitForSelector('.stepper'); // פרטי הקורס, או השלב שנשמר בטיוטה
 }
 
 async function fillDetails(page: Page) {
@@ -188,6 +195,7 @@ describe('ממשק המרצה – תוצאות וייצוא', () => {
     expect(draft1.assessment_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(draft1.not_applicable).toEqual(['R']);
     await page.reload();
+    await begin(page);
     expect(await page.locator('.results').count()).toBe(1);
     await page.click('.stepper li:nth-child(4) button');
     expect(await page.isChecked('#na-R')).toBe(true);
@@ -240,11 +248,28 @@ describe('ממשק המרצה – נייד', () => {
   });
 });
 
+describe('ממשק המרצה – עמוד פתיחה', () => {
+  it('מטרת המיפוי, "חשוב לדעת" והודעת הפרטיות בעמוד נפרד; פרטי הקורס רק אחרי לחיצה', async () => {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.goto(SITE);
+    expect(await page.locator('.intro-note').textContent()).toContain('המיפוי אינו כלי להערכת מרצים');
+    expect(await page.locator('.intro .privacy-notice').count()).toBe(1);
+    expect(await page.locator('#f-faculty').count()).toBe(0);
+    expect(await page.locator('.stepper').count()).toBe(0);
+    await begin(page);
+    expect(await page.locator('.stepper').count()).toBe(1);
+    expect(await page.locator('.privacy-notice').count()).toBe(0);
+    await ctx.close();
+  });
+});
+
 describe('ממשק המרצה – בחירה מרשימת הקורסים', () => {
   const LISTED = new URL('../../dist-e2e-courses/index.html', import.meta.url).href;
   async function openListed() {
     const c = await open();
     await c.page.goto(LISTED);
+    await begin(c.page);
     await c.page.selectOption('#f-faculty', 'הפקולטה למדעי הבריאות');
     await c.page.selectOption('#f-department', 'סיעוד');
     return c;
@@ -253,6 +278,7 @@ describe('ממשק המרצה – בחירה מרשימת הקורסים', () =>
   it('לפני בחירת מחלקה: רשימות נעולות עם "בחרו קודם מחלקה" (לא שדות הקלדה)', async () => {
     const { ctx, page } = await open();
     await page.goto(LISTED);
+    await begin(page);
     expect(await page.locator('select#f-lecturer_name').isDisabled()).toBe(true);
     expect(await page.locator('select#f-lecturer_name option').first().textContent()).toBe('בחרו קודם מחלקה');
     expect(await page.locator('input#f-lecturer_name').count()).toBe(0);

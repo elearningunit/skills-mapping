@@ -1,9 +1,8 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { ACADEMIC_YEARS, SKILLS, STUDY_YEARS, TOTAL_ITEMS } from '../config/questionnaire';
+import { ACADEMIC_YEARS, SKILLS, STUDY_YEARS } from '../config/questionnaire';
 import { departmentsOf, FACULTIES } from '../config/units';
 import { courseKey, courseLabel, coursesOf, findCourse, hasCatalog, isListedLecturer, lecturersOf } from '../lib/courses';
 import type { CourseDetails } from '../lib/types';
-import { PrivacyNotice } from '../components/PrivacyNotice';
 import { honeypot } from '../lib/honeypot';
 import { normalizeText, validateDetails, type DetailsErrors } from '../lib/validation';
 
@@ -62,12 +61,6 @@ export function StartScreen({ details, onChange, onNext }: {
     <section className="card" aria-labelledby="start-h">
       <p className="eyebrow">שלב 1 מתוך {SKILLS.length + 2}</p>
       <h1 id="start-h" tabIndex={-1}>פרטי הקורס</h1>
-      <p className="lead">
-        המיפוי בוחן באיזו מידה הקורס דורש מהסטודנטים לתרגל ארבע מיומנויות: {SKILLS.map((s) => s.name).join('; ')},
-        והאם הן מוערכות באופן מובנה. {TOTAL_ITEMS} שאלות, כרבע שעה. בסוף תקבלו דוח אישי בקובץ PDF וקובץ CSV.
-      </p>
-
-      <PrivacyNotice />
 
       {tried && errCount > 0 && (
         <div className="error-summary" role="alert">

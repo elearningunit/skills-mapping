@@ -4,6 +4,7 @@ import { deleteDraft, loadDraft, saveDraft } from './lib/draft';
 import { isoDate, uuid } from './lib/ids';
 import type { Answers, CourseDetails, Mapping } from './lib/types';
 import { isMappingComplete, missingInSkill, validateDetails } from './lib/validation';
+import { IntroScreen } from './screens/IntroScreen';
 import { StartScreen } from './screens/StartScreen';
 import { QuestionnaireScreen } from './screens/QuestionnaireScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
@@ -25,6 +26,8 @@ export function App() {
   const [keepDraft, setKeepDraft] = useState<boolean>(initial !== null);
   const [notice, setNotice] = useState<string>(initial ? 'הטיוטה ששמרתם בדפדפן זה נטענה.' : '');
   const mainRef = useRef<HTMLElement>(null);
+  // עמוד הפתיחה מוצג בכל כניסה; ממנו ממשיכים לפרטי הקורס (או לשלב שנשמר בטיוטה)
+  const [intro, setIntro] = useState(true);
 
   // שמירת טיוטה רק לבקשת המשתמש
   useEffect(() => {
@@ -116,14 +119,14 @@ export function App() {
               </small>
             </span>
           </div>
-          <Stepper
+          {!intro && <Stepper
             step={step}
             labels={['פרטי הקורס', ...SKILLS.map((s) => s.name), 'תוצאות']}
             states={stepStates}
             enabled={stepEnabled}
             reasons={stepReasons}
             onGo={go}
-          />
+          />}
         </div>
       </header>
 
@@ -139,10 +142,11 @@ export function App() {
           )}
         </div>
 
-        {step === 0 && (
+        {intro && <IntroScreen resuming={initial !== null} onStart={() => { setIntro(false); go(step); }} />}
+        {!intro && step === 0 && (
           <StartScreen details={details} onChange={setDetails} onNext={() => go(1)} />
         )}
-        {step >= 1 && step < RESULTS && (
+        {!intro && step >= 1 && step < RESULTS && (
           <QuestionnaireScreen
             key={step}
             skill={SKILLS[step - 1]}
@@ -157,8 +161,8 @@ export function App() {
             isLast={step === RESULTS - 1}
           />
         )}
-        {step === RESULTS && mapping && <ResultsScreen mapping={mapping} onEdit={(s) => go(s)} />}
-        {step === RESULTS && !mapping && (
+        {!intro && step === RESULTS && mapping && <ResultsScreen mapping={mapping} onEdit={(s) => go(s)} />}
+        {!intro && step === RESULTS && !mapping && (
           <section className="card">
             <h2 tabIndex={-1}>חסרים דירוגים</h2>
             <p>יש להשלים את כל {TOTAL_ITEMS} הדירוגים לפני הצגת התוצאות.</p>
