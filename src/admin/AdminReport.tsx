@@ -3,6 +3,7 @@ import { SKILLS, STUDY_YEARS } from '../config/questionnaire';
 import { LEVEL_LABELS, levelOf } from '../lib/levels';
 import { fmt2 } from '../lib/scoring';
 import { ScoreChart } from '../components/ScoreChart';
+import logo from '../assets/logo-teaching-innovation.png';
 import type { AdminRecord, Filters } from './model';
 import {
   aggregate, byStudyYear, chunk, programObservations, reportRows, reportScope, ROWS_PER_PAGE, toScoreMap,
@@ -28,7 +29,7 @@ export const AdminReport = forwardRef<HTMLDivElement, {
         <p className="eyebrow">דוח מיפוי מיומנויות · הרשות לחדשנות בהוראה</p>
         <h1>{h}</h1>
       </div>
-      <span className="pdf-pg">עמוד {n} מתוך {total}</span>
+      <span className="pdf-brand"><img src={logo} alt="" /><span className="pdf-pg">עמוד {n} מתוך {total}</span></span>
     </header>
   );
 

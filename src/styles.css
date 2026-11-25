@@ -361,3 +361,5 @@ table.heatmap { border-collapse: separate; border-spacing: 4px; font-size: .85re
 .intro-purpose { border: 1px solid var(--line); border-inline-start: 5px solid var(--muted); background: var(--track); border-radius: var(--r); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
 .intro-purpose h2 { font-size: 1rem; font-weight: 700; }
 .intro-purpose p { font-size: .95rem; max-width: 75ch; }
+.pdf-brand { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pdf-brand img { height: 44px; width: auto; display: block; }

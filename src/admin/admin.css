@@ -143,3 +143,5 @@ td.sc.empty { color: var(--muted); }
 
 .a-brand { display: flex; align-items: center; gap: 14px; }
 .a-logo { height: 52px; width: auto; display: block; padding-inline-end: 14px; border-inline-end: 1px solid var(--line); }
+.pdf-brand { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pdf-brand img { height: 44px; width: auto; display: block; }

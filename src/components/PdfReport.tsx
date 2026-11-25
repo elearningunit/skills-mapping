@@ -6,6 +6,7 @@ import { buildInsights } from '../lib/insights';
 import { ScoreChart } from './ScoreChart';
 import { DetailsList } from './ReportParts';
 import { ColorLegend, HeatMap } from './Heat';
+import logo from '../assets/logo-teaching-innovation.png';
 
 /** שני עמודי A4 (794×1123 פיקסלים) המצוירים ל-PDF. עמוד 1: פרופיל ציונים; עמוד 2: תובנות והמלצות. */
 export const PdfReport = forwardRef<HTMLDivElement, {
@@ -19,7 +20,7 @@ export const PdfReport = forwardRef<HTMLDivElement, {
             <p className="eyebrow">דוח מיפוי מיומנויות בהוראה</p>
             <h1>{m.details.course_name}</h1>
           </div>
-          <span className="pdf-pg">עמוד 1 מתוך 2</span>
+          <span className="pdf-brand"><img src={logo} alt="" /><span className="pdf-pg">עמוד 1 מתוך 2</span></span>
         </header>
         <DetailsList m={m} />
         <h2>פרופיל ציונים</h2>
@@ -37,7 +38,7 @@ export const PdfReport = forwardRef<HTMLDivElement, {
             <p className="eyebrow">{m.details.course_name} · {m.details.lecturer_name}</p>
             <h1>תובנות והמלצות</h1>
           </div>
-          <span className="pdf-pg">עמוד 2 מתוך 2</span>
+          <span className="pdf-brand"><img src={logo} alt="" /><span className="pdf-pg">עמוד 2 מתוך 2</span></span>
         </header>
         <h2>תובנות</h2>
         <ul className="insights rich">
