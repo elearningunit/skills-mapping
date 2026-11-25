@@ -5,6 +5,7 @@ import { CSV_COLUMNS, escapeCsv, guardFormula } from '../lib/csv';
 import { LEVEL_LABELS, levelOf } from '../lib/levels';
 import { fmt2 } from '../lib/scoring';
 import { getApi } from './api';
+import logo from '../assets/logo-teaching-innovation.png';
 import {
   applyFilters, counts, EMPTY_FILTERS, exportRows, formatDate, sortNewestFirst, STATUS_LABELS, toRecord,
   flagLabel, type AdminData, type AdminRecord, type Filters,
@@ -94,9 +95,12 @@ export function AdminApp() {
   return (
     <div className="admin">
       <header className="a-top">
-        <div>
-          <strong>ממשק הרשות – מיפוי מיומנויות</strong>
-          <small>הרשות לחדשנות בהוראה</small>
+        <div className="a-brand">
+          <img className="a-logo" src={logo} alt="אוניברסיטת אריאל בשומרון – הרשות לחדשנות בהוראה" />
+          <div>
+            <strong>ממשק הרשות – מיפוי מיומנויות</strong>
+            <small>הרשות לחדשנות בהוראה</small>
+          </div>
         </div>
         <div className="a-user">
           {load.state === 'ready' && <span>מחובר/ת: <span dir="ltr">{load.data.me}</span></span>}

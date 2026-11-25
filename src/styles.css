@@ -71,14 +71,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .topbar-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 10px; }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+/* לוגו האוניברסיטה והרשות: רקע לבן קבוע, כדי שיהיה קריא גם במצב כהה */
+.brand-logo { height: 52px; width: auto; display: block; padding-inline-end: 14px; border-inline-end: 1px solid var(--line); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand-logo { background: #fff; border-radius: 6px; padding: 3px 8px; border: 0; } }
+:root[data-theme="dark"] .brand-logo { background: #fff; border-radius: 6px; padding: 3px 8px; border: 0; }
+@media (max-width: 520px) { .brand-logo { height: 40px; } }
 .brand strong { display: block; font-weight: 500; font-size: 1rem; }
 .brand small { display: block; color: var(--muted); font-size: .78rem; }
-.brand-mark { display: inline-flex; align-items: flex-end; gap: 3px; height: 26px; }
-.brand-mark i { display: block; width: 6px; border-radius: 2px; background: var(--accent); }
-.brand-mark i:nth-child(1) { height: 60%; }
-.brand-mark i:nth-child(2) { height: 100%; background: var(--assess); }
-.brand-mark i:nth-child(3) { height: 80%; }
 
 .stepper { list-style: none; display: flex; gap: 4px; margin: 0; padding: 0; font-size: .8rem; color: var(--muted); }
 .stepper li { display: flex; }

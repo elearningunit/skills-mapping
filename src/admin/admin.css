@@ -140,3 +140,6 @@ td.sc.empty { color: var(--muted); }
 .r-ay { color: var(--muted); font-weight: 400; }
 .r-legend { margin-top: 4px; font-size: 10.5px; }
 .a-num { color: var(--muted); font-weight: 400; font-size: 11.5px; }
+
+.a-brand { display: flex; align-items: center; gap: 14px; }
+.a-logo { height: 52px; width: auto; display: block; padding-inline-end: 14px; border-inline-end: 1px solid var(--line); }

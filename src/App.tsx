@@ -10,6 +10,7 @@ import { QuestionnaireScreen } from './screens/QuestionnaireScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
 import { Stepper, type StepState } from './components/Stepper';
 import { ConfirmButton } from './components/ConfirmButton';
+import logo from './assets/logo-teaching-innovation.png';
 
 const EMPTY_DETAILS: CourseDetails = {
   faculty: '', department: '', academic_year: '', study_year: null, lecturer_name: '', course_name: '', course_number: '',
@@ -109,9 +110,7 @@ export function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <i /><i /><i />
-            </span>
+            <img className="brand-logo" src={logo} alt="אוניברסיטת אריאל בשומרון – הרשות לחדשנות בהוראה" />
             <span>
               <strong>מיפוי מיומנויות בהוראה</strong>
               <small>
