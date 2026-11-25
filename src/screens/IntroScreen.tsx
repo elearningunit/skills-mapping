@@ -6,10 +6,13 @@ export function IntroScreen({ onStart, resuming }: { onStart: () => void; resumi
   return (
     <section className="card intro" aria-labelledby="intro-h">
       <h1 id="intro-h" tabIndex={-1}>מיפוי מיומנויות בהוראה</h1>
-      <p className="lead">
-        המיפוי בוחן באיזו מידה הקורס דורש מהסטודנטים לתרגל ארבע מיומנויות: {SKILLS.map((s) => s.name).join('; ')},
-        והאם הן מוערכות באופן מובנה. {TOTAL_ITEMS} שאלות, כרבע שעה. בסוף תקבלו דוח אישי בקובץ PDF וקובץ CSV.
-      </p>
+      <aside className="intro-purpose" aria-labelledby="purpose-h">
+        <h2 id="purpose-h">מטרת המיפוי</h2>
+        <p>
+          המיפוי בוחן באיזו מידה הקורס דורש מהסטודנטים לתרגל ארבע מיומנויות: {SKILLS.map((s) => s.name).join('; ')},
+          והאם הן מוערכות באופן מובנה. {TOTAL_ITEMS} שאלות, כרבע שעה. בסוף תקבלו דוח אישי, ותשלחו את המיפוי לרשות לחדשנות בהוראה.
+        </p>
+      </aside>
 
       <aside className="intro-note" aria-labelledby="note-h">
         <h2 id="note-h">חשוב לדעת</h2>

@@ -210,14 +210,20 @@ describe('ממשק המרצה – שליחה לרשות', () => {
     const { ctx, page, posts, errors } = await open();
     await fillDetails(page);
     await answerAll(page);
-    await page.click('button:has-text("שליחה לרשות")');
+    // לפני שליחה: הדגשה בראש העמוד ותזכורת בתחתיתו
+    expect(await page.locator('.send-card h2').textContent()).toContain('שלב אחרון');
+    expect(await page.locator('.send-reminder').count()).toBe(1);
+    await page.click('.send-card button');
     await page.waitForFunction(() => /נשלח/.test(document.querySelector('.export-msg')?.textContent || ''));
     expect(posts).toHaveLength(1);
+    // אחרי שליחה מוצלחת: אישור ירוק, והתזכורת נעלמת
+    expect(await page.locator('.send-card.sent h2').textContent()).toContain('המיפוי נשלח לרשות');
+    expect(await page.locator('.send-reminder').count()).toBe(0);
     const body = posts[0] as { row: Record<string, unknown>; hp: string };
     expect(body.hp).toBe('');
     expect(Object.keys(body.row)).toHaveLength(42);
     expect([body.row.department, body.row.academic_year, body.row.R_status]).toEqual(['סיעוד', 'תשפ״ז', 'not_applicable']);
-    await page.click('button:has-text("שליחה לרשות")');
+    await page.click('.send-card button'); // "שליחה חוזרת (אחרי תיקון)"
     await page.waitForFunction(() => document.querySelectorAll('button[disabled]').length === 0);
     expect(posts).toHaveLength(2);
     expect(posts[1].row).toMatchObject({ assessment_id: body.row.assessment_id, assessment_date: body.row.assessment_date });
@@ -229,7 +235,7 @@ describe('ממשק המרצה – שליחה לרשות', () => {
     const { ctx, page } = await open({ collectorReply: { ok: false, error: 'too_fast' } });
     await fillDetails(page);
     await answerAll(page);
-    await page.click('button:has-text("שליחה לרשות")');
+    await page.click('.send-card button');
     await page.waitForFunction(() => /לפני רגע/.test(document.querySelector('.export-msg')?.textContent || ''));
     await ctx.close();
   });
@@ -253,6 +259,7 @@ describe('ממשק המרצה – עמוד פתיחה', () => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     await page.goto(SITE);
+    expect(await page.locator('.intro-purpose h2').textContent()).toBe('מטרת המיפוי');
     expect(await page.locator('.intro-note').textContent()).toContain('המיפוי אינו כלי להערכת מרצים');
     expect(await page.locator('.intro .privacy-notice').count()).toBe(1);
     expect(await page.locator('#f-faculty').count()).toBe(0);

@@ -20,16 +20,19 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
   const recs = useMemo(() => recommend(mapping.answers, 3, mapping.not_applicable), [mapping.answers, mapping.not_applicable]);
   const pdfRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<Busy>('');
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState(''); // הודעות על קבצים (PDF / CSV)
+  const [sendMsg, setSendMsg] = useState('');
+  const [sent, setSent] = useState(false);
 
   const report = (r: string, what: string) =>
     setMsg(r === 'saved' ? `קובץ ה-${what} הוכן להורדה.` : `לא ניתן היה להוריד את קובץ ה-${what}. נסו שוב.`);
 
   const send = async () => {
     setBusy('send');
-    setMsg('שולחים את המיפוי…');
+    setSendMsg('שולחים את המיפוי…');
     const r = await submitMapping(SUBMIT_URL, mapping);
-    setMsg(
+    setSent(r === 'ok');
+    setSendMsg(
       r === 'ok' ? 'המיפוי נשלח לרשות לחדשנות בהוראה. אם תתקנו תשובות ותשלחו שוב, המיפוי יעודכן.'
         : r === 'sent_unconfirmed' ? 'המיפוי נשלח, אך לא התקבל אישור שהוא נשמר. כדי לוודא, לחצו שוב על "שליחה לרשות" בעוד חצי דקה. שליחה חוזרת אינה יוצרת כפילות.'
         : r === 'too_fast' ? 'המיפוי נשלח לפני רגע. אם תיקנתם תשובות, המתינו כמה שניות ושלחו שוב.'
@@ -69,27 +72,35 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
         <DetailsList m={mapping} />
       </div>
 
+      {SUBMIT_URL && (
+        <div className={`card send-card ${sent ? 'sent' : ''}`}>
+          <h2>{sent ? '✓ המיפוי נשלח לרשות' : 'שלב אחרון: שליחת המיפוי לרשות'}</h2>
+          {!sent && (
+            <p>
+              <b>ללא שליחה, הרשות לחדשנות בהוראה לא תקבל את המיפוי.</b> הורדת הדוח שומרת עותק אצלכם בלבד, ואינה שולחת אותו.
+            </p>
+          )}
+          <div className="actions">
+            <button className={`btn ${sent ? '' : 'primary big'}`} onClick={send} disabled={busy !== ''}>
+              {busy === 'send' ? 'שולח…' : sent ? 'שליחה חוזרת (אחרי תיקון)' : 'שליחה לרשות'}
+            </button>
+          </div>
+          <p className="export-msg" role="status" aria-live="polite">{sendMsg}</p>
+        </div>
+      )}
+
       <div className="card export">
         <div>
-          <h2>{SUBMIT_URL ? 'שליחה ושמירה' : 'שמירת התוצאות'}</h2>
-          <p className="muted">
-            {SUBMIT_URL
-              ? 'כדי שהמיפוי יגיע לרשות לחדשנות בהוראה, לחצו "שליחה לרשות". אפשר גם להוריד עותק לעצמכם.'
-              : 'הקבצים נוצרים בדפדפן שלכם, ללא חשבון וללא שליחה לשרת.'}
-          </p>
+          <h2>עותק לעצמכם</h2>
+          <p className="muted">הקבצים נוצרים בדפדפן שלכם.</p>
         </div>
         <div className="export-btns">
-          {SUBMIT_URL && (
-            <button className="btn primary" onClick={send} disabled={busy !== ''}>
-              {busy === 'send' ? 'שולח…' : 'שליחה לרשות'}
-            </button>
-          )}
-          <button className={SUBMIT_URL ? 'btn' : 'btn primary'} onClick={exportPdf} disabled={busy !== ''}>
+          <button className="btn" onClick={exportPdf} disabled={busy !== ''}>
             {busy === 'pdf' ? 'מכין PDF…' : 'הורדת דוח PDF'}
           </button>
           <button className="btn" onClick={exportCsv} disabled={busy !== ''}>הורדת CSV</button>
         </div>
-        <p className="export-msg" role="status" aria-live="polite">{msg}</p>
+        <p className="file-msg" role="status" aria-live="polite">{msg}</p>
       </div>
 
       <div className="card">
@@ -125,6 +136,16 @@ export function ResultsScreen({ mapping, onEdit }: { mapping: Mapping; onEdit: (
           )}
         </div>
       </div>
+
+      {SUBMIT_URL && !sent && (
+        <div className="card send-reminder">
+          <p><b>לא לשכוח:</b> המיפוי עדיין לא נשלח לרשות.</p>
+          <button className="btn primary" onClick={send} disabled={busy !== ''}>
+            {busy === 'send' ? 'שולח…' : 'שליחה לרשות'}
+          </button>
+          {sendMsg && <p className="muted send-reminder-msg">{sendMsg}</p>}
+        </div>
+      )}
 
       <div className="card edit-card">
         <div className="edit-row">
