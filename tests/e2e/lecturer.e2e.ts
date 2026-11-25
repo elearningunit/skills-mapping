@@ -260,7 +260,7 @@ describe('ממשק המרצה – עמוד פתיחה', () => {
     const page = await ctx.newPage();
     await page.goto(SITE);
     expect(await page.locator('.intro-purpose h2').textContent()).toBe('מטרת המיפוי');
-    expect(await page.locator('.intro-note').textContent()).toContain('המיפוי אינו כלי להערכת מרצים');
+    expect(await page.locator('.intro-purpose .intro-note').textContent()).toContain('המיפוי אינו כלי להערכת מרצים');
     expect(await page.locator('.intro .privacy-notice').count()).toBe(1);
     expect(await page.locator('#f-faculty').count()).toBe(0);
     expect(await page.locator('.stepper').count()).toBe(0);

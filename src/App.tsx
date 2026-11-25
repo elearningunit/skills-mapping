@@ -166,7 +166,7 @@ export function App() {
           <section className="card">
             <h2 tabIndex={-1}>חסרים דירוגים</h2>
             <p>יש להשלים את כל {TOTAL_ITEMS} הדירוגים לפני הצגת התוצאות.</p>
-            <button className="btn primary" onClick={() => go(1)}>חזרה לשאלון</button>
+            <div className="actions"><button className="btn primary" onClick={() => go(1)}>חזרה לשאלון</button></div>
           </section>
         )}
 
